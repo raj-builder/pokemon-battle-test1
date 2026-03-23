@@ -977,27 +977,29 @@ async function loadTeams(){
     useAPI=p.ok;
   }catch{}
 
-  const filteredFB=getFilteredPool();
-  let both;
+  const filteredFB=getFilteredPool(); // player pool — respects filters
+  const fullFB=[...FB];               // cpu pool — always full, no filters
+
   if(useAPI){
-    // Use full gen pools if filter applied
     const typeF=document.getElementById('typeFilter').value;
     const genF=document.getElementById('genFilter').value;
     let apiPool=Object.values(ALL_POOL).flat();
     if(genF) apiPool=ALL_POOL[genF]||apiPool;
     if(typeF){
-      // Use fallback pool filtered by type (API type filter requires extra calls)
-      both=shuffle([...filteredFB]).slice(0,10).map(p=>({...p,hp:p.maxHp}));
+      // Player: filtered fallback. CPU: random from full API pool
+      playerTeam=shuffle([...filteredFB]).slice(0,5).map(p=>({...p,hp:p.maxHp}));
+      const cpuIds=pick(Object.values(ALL_POOL).flat(),5);
+      cpuTeam=await Promise.all(cpuIds.map(id=>fetchPokemon(id)));
     } else {
       const ids=pick(apiPool,10);
-      both=await Promise.all(ids.map(id=>fetchPokemon(id)));
+      const both=await Promise.all(ids.map(id=>fetchPokemon(id)));
+      playerTeam=both.slice(0,5);
+      cpuTeam=both.slice(5,10);
     }
   } else {
-    both=shuffle([...filteredFB]).slice(0,10).map(p=>({...p,hp:p.maxHp}));
+    playerTeam=shuffle([...filteredFB]).slice(0,5).map(p=>({...p,hp:p.maxHp}));
+    cpuTeam=shuffle(fullFB).slice(0,5).map(p=>({...p,hp:p.maxHp}));
   }
-
-  playerTeam=both.slice(0,5);
-  cpuTeam=both.slice(5,10);
   renderReview();
   showScreen('screenReview');
 }
