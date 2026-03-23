@@ -175,6 +175,23 @@ button,select,input{touch-action:manipulation;}
   border-radius:8px;padding:10px 18px;cursor:pointer;transition:background .2s;}
 .btn-danger:hover{background:#991b1b;}
 
+/* ── BATTLE MODE TOGGLE ── */
+.mode-toggle{display:flex;gap:10px;justify-content:center;margin:16px 0 6px;flex-wrap:wrap;}
+.mode-btn{font-size:12px;font-weight:700;padding:11px 22px;border-radius:10px;cursor:pointer;
+  border:2px solid #2a3349;background:#161b27;color:#64748b;transition:all .2s;}
+.mode-btn.active{border-color:#60a5fa;background:#0f1a2e;color:#fff;}
+.mode-btn.active.ai{border-color:#facc15;background:#1a1500;color:#facc15;}
+.speed-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px;
+  font-size:12px;color:#64748b;}
+.speed-row input[type=range]{width:140px;accent-color:#facc15;}
+.speed-label{font-size:11px;color:#facc15;font-weight:700;min-width:48px;}
+/* AI mode: dim move buttons */
+.ai-mode .pmove:not(.cpu-move){opacity:.4;cursor:not-allowed !important;pointer-events:none;}
+/* auto-sim pause button */
+.btn-pause{font-size:12px;font-weight:700;padding:9px 20px;border-radius:8px;cursor:pointer;
+  border:1px solid #facc15;background:#1a1500;color:#facc15;transition:background .2s;}
+.btn-pause:hover{background:#2a2000;}
+
 /* ══════════════════════════════════════
    ARRANGE SCREEN
 ══════════════════════════════════════ */
@@ -517,6 +534,12 @@ button,select,input{touch-action:manipulation;}
         <option value="1">Gen 1 (Kanto)</option>
         <option value="2">Gen 2 (Johto)</option>
         <option value="3">Gen 3 (Hoenn)</option>
+        <option value="4">Gen 4 (Sinnoh)</option>
+        <option value="5">Gen 5 (Unova)</option>
+        <option value="6">Gen 6 (Kalos)</option>
+        <option value="7">Gen 7 (Alola)</option>
+        <option value="8">Gen 8 (Galar)</option>
+        <option value="9">Gen 9 (Paldea)</option>
       </select>
     </div>
     <button class="btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="applyFiltersAndReload()">Apply</button>
@@ -590,6 +613,24 @@ button,select,input{touch-action:manipulation;}
     <div class="screen-desc">Drag to set battle order. First Pokémon fights first.</div>
     <div class="drag-hint">☰ drag to reorder</div>
     <div id="arrangeList"></div>
+
+    <!-- ── BATTLE MODE ── -->
+    <div style="margin-top:20px;padding:16px;background:#111621;border:1px solid #1e2535;border-radius:12px;">
+      <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-align:center;margin-bottom:12px;">BATTLE MODE</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeUser" onclick="setMode('user')">🎮 You Control</button>
+        <button class="mode-btn ai" id="modeAI" onclick="setMode('ai')">🤖 AI Simulation</button>
+      </div>
+      <div id="speedRow" class="speed-row" style="display:none;">
+        <span>Speed</span>
+        <input type="range" id="simSpeed" min="1" max="5" value="2" oninput="updateSpeedLabel()">
+        <span class="speed-label" id="speedLabel">Normal</span>
+      </div>
+      <div style="text-align:center;font-size:11px;color:#4b5563;margin-top:8px;" id="modeDesc">
+        Pick your moves each turn and battle the CPU.
+      </div>
+    </div>
+
     <div class="action-row" style="padding:16px 0 0;">
       <button class="btn-primary" onclick="startBattle()">START BATTLE</button>
       <button class="btn-secondary" onclick="showScreen('screenReview')">Back</button>
@@ -656,7 +697,8 @@ button,select,input{touch-action:manipulation;}
     <!-- ── BATTLE LOG ── -->
     <div class="b-log" id="battleLog"></div>
 
-    <div style="text-align:center;padding-bottom:24px;">
+    <div style="text-align:center;padding-bottom:24px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-pause" id="pauseBtn" style="display:none;" onclick="togglePause()">⏸ Pause</button>
       <button class="btn-danger" onclick="forfeit()">Forfeit Battle</button>
     </div>
   </div>
@@ -708,13 +750,19 @@ let scores={you:0,cpu:0};
 let dragSrc=null;
 
 // ── Generation ranges (national dex numbers)
-const GEN_RANGES = { '1':[1,151], '2':[152,251], '3':[252,386] };
+const GEN_RANGES = { '1':[1,151], '2':[152,251], '3':[252,386], '4':[387,493], '5':[494,649], '6':[650,721], '7':[722,809], '8':[810,905], '9':[906,1010] };
 
-// ── Full pool by gen
+// ── Full pool by gen (for API mode)
 const ALL_POOL = {
   '1':[1,4,7,25,39,52,54,58,63,66,74,77,79,81,84,88,90,92,96,100,102,104,106,107,109,111,113,115,116,120,122,124,126,128,130,131,133,137,143,147],
   '2':[152,155,158,175,177,179,183,185,187,190,194,196,197,202,206,209,211,213,215,218,220,222,225,228,231,234,236,238,240,246],
-  '3':[252,255,258,270,273,276,278,280,283,285,287,290,293,296,298,300,302,304,306,309,311,313,315,318,320,322,325,327,331,333]
+  '3':[252,255,258,270,273,276,278,280,283,285,287,290,293,296,298,300,302,304,306,309,311,313,315,318,320,322,325,327,331,333],
+  '4':[389,392,395,405,430,445,448,461,472],
+  '5':[500,503,597,609,612,635],
+  '6':[658,660,681,700,706],
+  '7':[727,730,754,760,778],
+  '8':[812,815,818,884,887],
+  '9':[906,909,912,963,967]
 };
 
 // ── Type → pokemon ids mapping (from fallback pool)
@@ -771,6 +819,70 @@ const FB = [
   {id:252,name:'treecko',types:['grass'],maxHp:40,atk:45,def:35,spatk:65,spdef:55,spd:70,moves:['pound','absorb','quick-attack','mega-drain'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/252.png',stats:[{stat:{name:'hp'},base_stat:40},{stat:{name:'attack'},base_stat:45},{stat:{name:'defense'},base_stat:35},{stat:{name:'special-attack'},base_stat:65},{stat:{name:'special-defense'},base_stat:55},{stat:{name:'speed'},base_stat:70}]},
   {id:255,name:'torchic',types:['fire'],maxHp:45,atk:60,def:40,spatk:70,spdef:50,spd:45,moves:['scratch','ember','peck','sand-attack'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/255.png',stats:[{stat:{name:'hp'},base_stat:45},{stat:{name:'attack'},base_stat:60},{stat:{name:'defense'},base_stat:40},{stat:{name:'special-attack'},base_stat:70},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:45}]},
   {id:258,name:'mudkip',types:['water'],maxHp:50,atk:70,def:50,spatk:50,spdef:50,spd:40,moves:['tackle','water-gun','mud-slap','bide'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/258.png',stats:[{stat:{name:'hp'},base_stat:50},{stat:{name:'attack'},base_stat:70},{stat:{name:'defense'},base_stat:50},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:40}]},
+  // ── Gen 1 extras (more types) ──
+  {id:6,name:'charizard',types:['fire','flying'],maxHp:78,atk:84,def:78,spatk:109,spdef:85,spd:100,moves:['flamethrower','fly','dragon-claw','fire-spin'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png',stats:[{stat:{name:'hp'},base_stat:78},{stat:{name:'attack'},base_stat:84},{stat:{name:'defense'},base_stat:78},{stat:{name:'special-attack'},base_stat:109},{stat:{name:'special-defense'},base_stat:85},{stat:{name:'speed'},base_stat:100}]},
+  {id:38,name:'ninetales',types:['fire'],maxHp:73,atk:76,def:75,spatk:81,spdef:100,spd:100,moves:['ember','flamethrower','confuse-ray','fire-spin'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/38.png',stats:[{stat:{name:'hp'},base_stat:73},{stat:{name:'attack'},base_stat:76},{stat:{name:'defense'},base_stat:75},{stat:{name:'special-attack'},base_stat:81},{stat:{name:'special-defense'},base_stat:100},{stat:{name:'speed'},base_stat:100}]},
+  {id:59,name:'arcanine',types:['fire'],maxHp:90,atk:110,def:80,spatk:100,spdef:80,spd:95,moves:['bite','flamethrower','extreme-speed','fire-fang'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/59.png',stats:[{stat:{name:'hp'},base_stat:90},{stat:{name:'attack'},base_stat:110},{stat:{name:'defense'},base_stat:80},{stat:{name:'special-attack'},base_stat:100},{stat:{name:'special-defense'},base_stat:80},{stat:{name:'speed'},base_stat:95}]},
+  {id:78,name:'rapidash',types:['fire'],maxHp:65,atk:100,def:70,spatk:80,spdef:80,spd:105,moves:['ember','flamethrower','stomp','agility'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/78.png',stats:[{stat:{name:'hp'},base_stat:65},{stat:{name:'attack'},base_stat:100},{stat:{name:'defense'},base_stat:70},{stat:{name:'special-attack'},base_stat:80},{stat:{name:'special-defense'},base_stat:80},{stat:{name:'speed'},base_stat:105}]},
+  {id:136,name:'flareon',types:['fire'],maxHp:65,atk:130,def:60,spatk:95,spdef:110,spd:65,moves:['ember','flamethrower','fire-fang','leer'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/136.png',stats:[{stat:{name:'hp'},base_stat:65},{stat:{name:'attack'},base_stat:130},{stat:{name:'defense'},base_stat:60},{stat:{name:'special-attack'},base_stat:95},{stat:{name:'special-defense'},base_stat:110},{stat:{name:'speed'},base_stat:65}]},
+  {id:144,name:'articuno',types:['ice','flying'],maxHp:90,atk:85,def:100,spatk:95,spdef:125,spd:85,moves:['ice-beam','blizzard','powder-snow','mist'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/144.png',stats:[{stat:{name:'hp'},base_stat:90},{stat:{name:'attack'},base_stat:85},{stat:{name:'defense'},base_stat:100},{stat:{name:'special-attack'},base_stat:95},{stat:{name:'special-defense'},base_stat:125},{stat:{name:'speed'},base_stat:85}]},
+  {id:149,name:'dragonite',types:['dragon','flying'],maxHp:91,atk:134,def:95,spatk:100,spdef:100,spd:80,moves:['dragon-claw','thunder','fire-punch','hyper-beam'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png',stats:[{stat:{name:'hp'},base_stat:91},{stat:{name:'attack'},base_stat:134},{stat:{name:'defense'},base_stat:95},{stat:{name:'special-attack'},base_stat:100},{stat:{name:'special-defense'},base_stat:100},{stat:{name:'speed'},base_stat:80}]},
+  {id:94,name:'gengar',types:['ghost','poison'],maxHp:60,atk:65,def:60,spatk:130,spdef:75,spd:110,moves:['shadow-ball','hypnosis','night-shade','sludge-bomb'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png',stats:[{stat:{name:'hp'},base_stat:60},{stat:{name:'attack'},base_stat:65},{stat:{name:'defense'},base_stat:60},{stat:{name:'special-attack'},base_stat:130},{stat:{name:'special-defense'},base_stat:75},{stat:{name:'speed'},base_stat:110}]},
+  {id:127,name:'pinsir',types:['bug'],maxHp:65,atk:125,def:100,spatk:55,spdef:70,spd:85,moves:['vice-grip','seismic-toss','slash','submission'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/127.png',stats:[{stat:{name:'hp'},base_stat:65},{stat:{name:'attack'},base_stat:125},{stat:{name:'defense'},base_stat:100},{stat:{name:'special-attack'},base_stat:55},{stat:{name:'special-defense'},base_stat:70},{stat:{name:'speed'},base_stat:85}]},
+  {id:123,name:'scyther',types:['bug','flying'],maxHp:70,atk:110,def:80,spatk:55,spdef:80,spd:105,moves:['slash','wing-attack','quick-attack','agility'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/123.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:110},{stat:{name:'defense'},base_stat:80},{stat:{name:'special-attack'},base_stat:55},{stat:{name:'special-defense'},base_stat:80},{stat:{name:'speed'},base_stat:105}]},
+  {id:145,name:'zapdos',types:['electric','flying'],maxHp:90,atk:90,def:85,spatk:125,spdef:90,spd:100,moves:['thunderbolt','thunder','drill-peck','agility'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/145.png',stats:[{stat:{name:'hp'},base_stat:90},{stat:{name:'attack'},base_stat:90},{stat:{name:'defense'},base_stat:85},{stat:{name:'special-attack'},base_stat:125},{stat:{name:'special-defense'},base_stat:90},{stat:{name:'speed'},base_stat:100}]},
+  // ── Gen 2 extras ──
+  {id:157,name:'typhlosion',types:['fire'],maxHp:78,atk:84,def:78,spatk:109,spdef:85,spd:100,moves:['flamethrower','eruption','swift','smokescreen'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/157.png',stats:[{stat:{name:'hp'},base_stat:78},{stat:{name:'attack'},base_stat:84},{stat:{name:'defense'},base_stat:78},{stat:{name:'special-attack'},base_stat:109},{stat:{name:'special-defense'},base_stat:85},{stat:{name:'speed'},base_stat:100}]},
+  {id:227,name:'skarmory',types:['steel','flying'],maxHp:65,atk:80,def:140,spatk:40,spdef:70,spd:70,moves:['steel-wing','fury-attack','air-slash','swift'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/227.png',stats:[{stat:{name:'hp'},base_stat:65},{stat:{name:'attack'},base_stat:80},{stat:{name:'defense'},base_stat:140},{stat:{name:'special-attack'},base_stat:40},{stat:{name:'special-defense'},base_stat:70},{stat:{name:'speed'},base_stat:70}]},
+  {id:248,name:'tyranitar',types:['rock','dark'],maxHp:100,atk:134,def:110,spatk:95,spdef:100,spd:61,moves:['crunch','rock-slide','earthquake','hyper-beam'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/248.png',stats:[{stat:{name:'hp'},base_stat:100},{stat:{name:'attack'},base_stat:134},{stat:{name:'defense'},base_stat:110},{stat:{name:'special-attack'},base_stat:95},{stat:{name:'special-defense'},base_stat:100},{stat:{name:'speed'},base_stat:61}]},
+  {id:230,name:'kingdra',types:['water','dragon'],maxHp:75,atk:95,def:95,spatk:95,spdef:95,spd:85,moves:['water-gun','dragon-breath','surf','smokescreen'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/230.png',stats:[{stat:{name:'hp'},base_stat:75},{stat:{name:'attack'},base_stat:95},{stat:{name:'defense'},base_stat:95},{stat:{name:'special-attack'},base_stat:95},{stat:{name:'special-defense'},base_stat:95},{stat:{name:'speed'},base_stat:85}]},
+  // ── Gen 3 extras ──
+  {id:257,name:'blaziken',types:['fire','fighting'],maxHp:80,atk:120,def:70,spatk:110,spdef:70,spd:80,moves:['blaze-kick','sky-uppercut','flamethrower','double-kick'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/257.png',stats:[{stat:{name:'hp'},base_stat:80},{stat:{name:'attack'},base_stat:120},{stat:{name:'defense'},base_stat:70},{stat:{name:'special-attack'},base_stat:110},{stat:{name:'special-defense'},base_stat:70},{stat:{name:'speed'},base_stat:80}]},
+  {id:310,name:'manectric',types:['electric'],maxHp:70,atk:75,def:60,spatk:105,spdef:60,spd:105,moves:['thunderbolt','thunder','quick-attack','bite'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/310.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:75},{stat:{name:'defense'},base_stat:60},{stat:{name:'special-attack'},base_stat:105},{stat:{name:'special-defense'},base_stat:60},{stat:{name:'speed'},base_stat:105}]},
+  {id:373,name:'salamence',types:['dragon','flying'],maxHp:95,atk:135,def:80,spatk:110,spdef:80,spd:100,moves:['dragon-claw','flamethrower','crunch','aerial-ace'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/373.png',stats:[{stat:{name:'hp'},base_stat:95},{stat:{name:'attack'},base_stat:135},{stat:{name:'defense'},base_stat:80},{stat:{name:'special-attack'},base_stat:110},{stat:{name:'special-defense'},base_stat:80},{stat:{name:'speed'},base_stat:100}]},
+  {id:376,name:'metagross',types:['steel','psychic'],maxHp:80,atk:135,def:130,spatk:95,spdef:90,spd:70,moves:['meteor-mash','psychic','agility','zen-headbutt'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/376.png',stats:[{stat:{name:'hp'},base_stat:80},{stat:{name:'attack'},base_stat:135},{stat:{name:'defense'},base_stat:130},{stat:{name:'special-attack'},base_stat:95},{stat:{name:'special-defense'},base_stat:90},{stat:{name:'speed'},base_stat:70}]},
+  {id:334,name:'altaria',types:['dragon','flying'],maxHp:75,atk:70,def:90,spatk:70,spdef:105,spd:80,moves:['dragon-breath','sing','aerial-ace','take-down'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/334.png',stats:[{stat:{name:'hp'},base_stat:75},{stat:{name:'attack'},base_stat:70},{stat:{name:'defense'},base_stat:90},{stat:{name:'special-attack'},base_stat:70},{stat:{name:'special-defense'},base_stat:105},{stat:{name:'speed'},base_stat:80}]},
+  // ── Gen 4 (Sinnoh) ──
+  {id:389,name:'torterra',types:['grass','ground'],maxHp:95,atk:109,def:105,spatk:75,spdef:85,spd:56,moves:['earthquake','wood-hammer','crunch','razor-leaf'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/389.png',stats:[{stat:{name:'hp'},base_stat:95},{stat:{name:'attack'},base_stat:109},{stat:{name:'defense'},base_stat:105},{stat:{name:'special-attack'},base_stat:75},{stat:{name:'special-defense'},base_stat:85},{stat:{name:'speed'},base_stat:56}]},
+  {id:392,name:'infernape',types:['fire','fighting'],maxHp:76,atk:104,def:71,spatk:104,spdef:71,spd:108,moves:['flamethrower','close-combat','mach-punch','nasty-plot'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/392.png',stats:[{stat:{name:'hp'},base_stat:76},{stat:{name:'attack'},base_stat:104},{stat:{name:'defense'},base_stat:71},{stat:{name:'special-attack'},base_stat:104},{stat:{name:'special-defense'},base_stat:71},{stat:{name:'speed'},base_stat:108}]},
+  {id:395,name:'empoleon',types:['water','steel'],maxHp:84,atk:86,def:88,spatk:111,spdef:101,spd:60,moves:['surf','flash-cannon','ice-beam','drill-peck'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/395.png',stats:[{stat:{name:'hp'},base_stat:84},{stat:{name:'attack'},base_stat:86},{stat:{name:'defense'},base_stat:88},{stat:{name:'special-attack'},base_stat:111},{stat:{name:'special-defense'},base_stat:101},{stat:{name:'speed'},base_stat:60}]},
+  {id:448,name:'lucario',types:['fighting','steel'],maxHp:70,atk:110,def:70,spatk:115,spdef:70,spd:90,moves:['aura-sphere','close-combat','bullet-punch','flash-cannon'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/448.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:110},{stat:{name:'defense'},base_stat:70},{stat:{name:'special-attack'},base_stat:115},{stat:{name:'special-defense'},base_stat:70},{stat:{name:'speed'},base_stat:90}]},
+  {id:445,name:'garchomp',types:['dragon','ground'],maxHp:108,atk:130,def:95,spatk:80,spdef:85,spd:102,moves:['dragon-claw','earthquake','crunch','dragon-rush'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/445.png',stats:[{stat:{name:'hp'},base_stat:108},{stat:{name:'attack'},base_stat:130},{stat:{name:'defense'},base_stat:95},{stat:{name:'special-attack'},base_stat:80},{stat:{name:'special-defense'},base_stat:85},{stat:{name:'speed'},base_stat:102}]},
+  {id:430,name:'honchkrow',types:['dark','flying'],maxHp:100,atk:125,def:52,spatk:105,spdef:52,spd:71,moves:['night-slash','sucker-punch','fly','dark-pulse'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/430.png',stats:[{stat:{name:'hp'},base_stat:100},{stat:{name:'attack'},base_stat:125},{stat:{name:'defense'},base_stat:52},{stat:{name:'special-attack'},base_stat:105},{stat:{name:'special-defense'},base_stat:52},{stat:{name:'speed'},base_stat:71}]},
+  {id:461,name:'weavile',types:['dark','ice'],maxHp:70,atk:120,def:65,spatk:45,spdef:85,spd:125,moves:['night-slash','ice-punch','fake-out','aerial-ace'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/461.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:120},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:45},{stat:{name:'special-defense'},base_stat:85},{stat:{name:'speed'},base_stat:125}]},
+  {id:472,name:'gliscor',types:['ground','flying'],maxHp:75,atk:95,def:125,spatk:45,spdef:75,spd:95,moves:['earthquake','aerial-ace','x-scissor','knock-off'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/472.png',stats:[{stat:{name:'hp'},base_stat:75},{stat:{name:'attack'},base_stat:95},{stat:{name:'defense'},base_stat:125},{stat:{name:'special-attack'},base_stat:45},{stat:{name:'special-defense'},base_stat:75},{stat:{name:'speed'},base_stat:95}]},
+  {id:405,name:'luxray',types:['electric'],maxHp:80,atk:120,def:79,spatk:95,spdef:79,spd:70,moves:['thunderbolt','crunch','wild-charge','bite'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/405.png',stats:[{stat:{name:'hp'},base_stat:80},{stat:{name:'attack'},base_stat:120},{stat:{name:'defense'},base_stat:79},{stat:{name:'special-attack'},base_stat:95},{stat:{name:'special-defense'},base_stat:79},{stat:{name:'speed'},base_stat:70}]},
+  // ── Gen 5 (Unova) ──
+  {id:500,name:'emboar',types:['fire','fighting'],maxHp:110,atk:123,def:65,spatk:100,spdef:65,spd:65,moves:['flamethrower','hammer-arm','heat-crash','arm-thrust'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/500.png',stats:[{stat:{name:'hp'},base_stat:110},{stat:{name:'attack'},base_stat:123},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:100},{stat:{name:'special-defense'},base_stat:65},{stat:{name:'speed'},base_stat:65}]},
+  {id:503,name:'samurott',types:['water'],maxHp:95,atk:100,def:85,spatk:108,spdef:70,spd:70,moves:['surf','ice-beam','x-scissor','aqua-tail'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/503.png',stats:[{stat:{name:'hp'},base_stat:95},{stat:{name:'attack'},base_stat:100},{stat:{name:'defense'},base_stat:85},{stat:{name:'special-attack'},base_stat:108},{stat:{name:'special-defense'},base_stat:70},{stat:{name:'speed'},base_stat:70}]},
+  {id:635,name:'hydreigon',types:['dark','dragon'],maxHp:92,atk:105,def:90,spatk:125,spdef:90,spd:98,moves:['dragon-pulse','dark-pulse','hyper-voice','flamethrower'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/635.png',stats:[{stat:{name:'hp'},base_stat:92},{stat:{name:'attack'},base_stat:105},{stat:{name:'defense'},base_stat:90},{stat:{name:'special-attack'},base_stat:125},{stat:{name:'special-defense'},base_stat:90},{stat:{name:'speed'},base_stat:98}]},
+  {id:612,name:'haxorus',types:['dragon'],maxHp:76,atk:147,def:90,spatk:60,spdef:70,spd:97,moves:['dragon-claw','outrage','slash','dragon-dance'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/612.png',stats:[{stat:{name:'hp'},base_stat:76},{stat:{name:'attack'},base_stat:147},{stat:{name:'defense'},base_stat:90},{stat:{name:'special-attack'},base_stat:60},{stat:{name:'special-defense'},base_stat:70},{stat:{name:'speed'},base_stat:97}]},
+  {id:597,name:'ferroseed',types:['grass','steel'],maxHp:44,atk:50,def:91,spatk:24,spdef:86,spd:10,moves:['tackle','metal-claw','pin-missile','harden'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/597.png',stats:[{stat:{name:'hp'},base_stat:44},{stat:{name:'attack'},base_stat:50},{stat:{name:'defense'},base_stat:91},{stat:{name:'special-attack'},base_stat:24},{stat:{name:'special-defense'},base_stat:86},{stat:{name:'speed'},base_stat:10}]},
+  {id:609,name:'chandelure',types:['ghost','fire'],maxHp:60,atk:55,def:90,spatk:145,spdef:90,spd:80,moves:['shadow-ball','flamethrower','energy-ball','hex'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/609.png',stats:[{stat:{name:'hp'},base_stat:60},{stat:{name:'attack'},base_stat:55},{stat:{name:'defense'},base_stat:90},{stat:{name:'special-attack'},base_stat:145},{stat:{name:'special-defense'},base_stat:90},{stat:{name:'speed'},base_stat:80}]},
+  // ── Gen 6 (Kalos) ──
+  {id:658,name:'greninja',types:['water','dark'],maxHp:72,atk:95,def:67,spatk:103,spdef:71,spd:122,moves:['water-shuriken','dark-pulse','ice-beam','extrasensory'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/658.png',stats:[{stat:{name:'hp'},base_stat:72},{stat:{name:'attack'},base_stat:95},{stat:{name:'defense'},base_stat:67},{stat:{name:'special-attack'},base_stat:103},{stat:{name:'special-defense'},base_stat:71},{stat:{name:'speed'},base_stat:122}]},
+  {id:660,name:'diggersby',types:['normal','ground'],maxHp:85,atk:56,def:77,spatk:50,spdef:77,spd:78,moves:['earthquake','quick-attack','take-down','bulldoze'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/660.png',stats:[{stat:{name:'hp'},base_stat:85},{stat:{name:'attack'},base_stat:56},{stat:{name:'defense'},base_stat:77},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:77},{stat:{name:'speed'},base_stat:78}]},
+  {id:681,name:'aegislash',types:['steel','ghost'],maxHp:60,atk:50,def:140,spatk:50,spdef:140,spd:60,moves:['shadow-ball','flash-cannon','sacred-sword','king-shield'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/681.png',stats:[{stat:{name:'hp'},base_stat:60},{stat:{name:'attack'},base_stat:50},{stat:{name:'defense'},base_stat:140},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:140},{stat:{name:'speed'},base_stat:60}]},
+  {id:700,name:'sylveon',types:['fairy'],maxHp:95,atk:65,def:65,spatk:110,spdef:130,spd:60,moves:['moonblast','psyshock','shadow-ball','dazzling-gleam'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/700.png',stats:[{stat:{name:'hp'},base_stat:95},{stat:{name:'attack'},base_stat:65},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:110},{stat:{name:'special-defense'},base_stat:130},{stat:{name:'speed'},base_stat:60}]},
+  {id:706,name:'goodra',types:['dragon'],maxHp:90,atk:100,def:70,spatk:110,spdef:150,spd:80,moves:['dragon-pulse','sludge-wave','thunderbolt','focus-blast'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/706.png',stats:[{stat:{name:'hp'},base_stat:90},{stat:{name:'attack'},base_stat:100},{stat:{name:'defense'},base_stat:70},{stat:{name:'special-attack'},base_stat:110},{stat:{name:'special-defense'},base_stat:150},{stat:{name:'speed'},base_stat:80}]},
+  // ── Gen 7 (Alola) ──
+  {id:727,name:'incineroar',types:['fire','dark'],maxHp:95,atk:115,def:90,spatk:80,spdef:90,spd:60,moves:['flamethrower','darkest-lariat','cross-chop','outrage'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/727.png',stats:[{stat:{name:'hp'},base_stat:95},{stat:{name:'attack'},base_stat:115},{stat:{name:'defense'},base_stat:90},{stat:{name:'special-attack'},base_stat:80},{stat:{name:'special-defense'},base_stat:90},{stat:{name:'speed'},base_stat:60}]},
+  {id:730,name:'primarina',types:['water','fairy'],maxHp:80,atk:74,def:74,spatk:126,spdef:116,spd:60,moves:['sparkling-aria','moonblast','hyper-voice','psychic'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/730.png',stats:[{stat:{name:'hp'},base_stat:80},{stat:{name:'attack'},base_stat:74},{stat:{name:'defense'},base_stat:74},{stat:{name:'special-attack'},base_stat:126},{stat:{name:'special-defense'},base_stat:116},{stat:{name:'speed'},base_stat:60}]},
+  {id:760,name:'bewear',types:['normal','fighting'],maxHp:120,atk:125,def:80,spatk:55,spdef:60,spd:60,moves:['hammer-arm','double-edge','strength','chip-away'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/760.png',stats:[{stat:{name:'hp'},base_stat:120},{stat:{name:'attack'},base_stat:125},{stat:{name:'defense'},base_stat:80},{stat:{name:'special-attack'},base_stat:55},{stat:{name:'special-defense'},base_stat:60},{stat:{name:'speed'},base_stat:60}]},
+  {id:778,name:'mimikyu',types:['ghost','fairy'],maxHp:55,atk:90,def:80,spatk:50,spdef:105,spd:96,moves:['shadow-sneak','play-rough','shadow-claw','charm'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/778.png',stats:[{stat:{name:'hp'},base_stat:55},{stat:{name:'attack'},base_stat:90},{stat:{name:'defense'},base_stat:80},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:105},{stat:{name:'speed'},base_stat:96}]},
+  {id:754,name:'lurantis',types:['grass'],maxHp:70,atk:105,def:90,spatk:80,spdef:90,spd:45,moves:['leaf-blade','solar-blade','x-scissor','synthesis'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/754.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:105},{stat:{name:'defense'},base_stat:90},{stat:{name:'special-attack'},base_stat:80},{stat:{name:'special-defense'},base_stat:90},{stat:{name:'speed'},base_stat:45}]},
+  // ── Gen 8 (Galar) ──
+  {id:812,name:'rillaboom',types:['grass'],maxHp:100,atk:125,def:90,spatk:60,spdef:70,spd:85,moves:['drum-beating','wood-hammer','earthquake','grassy-glide'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/812.png',stats:[{stat:{name:'hp'},base_stat:100},{stat:{name:'attack'},base_stat:125},{stat:{name:'defense'},base_stat:90},{stat:{name:'special-attack'},base_stat:60},{stat:{name:'special-defense'},base_stat:70},{stat:{name:'speed'},base_stat:85}]},
+  {id:815,name:'cinderace',types:['fire'],maxHp:80,atk:116,def:75,spatk:65,spdef:75,spd:119,moves:['pyro-ball','high-jump-kick','zen-headbutt','court-change'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/815.png',stats:[{stat:{name:'hp'},base_stat:80},{stat:{name:'attack'},base_stat:116},{stat:{name:'defense'},base_stat:75},{stat:{name:'special-attack'},base_stat:65},{stat:{name:'special-defense'},base_stat:75},{stat:{name:'speed'},base_stat:119}]},
+  {id:818,name:'inteleon',types:['water'],maxHp:70,atk:85,def:65,spatk:125,spdef:65,spd:120,moves:['snipe-shot','tearful-look','air-cutter','acrobatics'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/818.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:85},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:125},{stat:{name:'special-defense'},base_stat:65},{stat:{name:'speed'},base_stat:120}]},
+  {id:884,name:'duraludon',types:['steel','dragon'],maxHp:70,atk:95,def:115,spatk:120,spdef:50,spd:85,moves:['dragon-claw','flash-cannon','thunderbolt','body-press'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/884.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:95},{stat:{name:'defense'},base_stat:115},{stat:{name:'special-attack'},base_stat:120},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:85}]},
+  {id:887,name:'dragapult',types:['dragon','ghost'],maxHp:88,atk:120,def:75,spatk:100,spdef:75,spd:142,moves:['dragon-darts','shadow-ball','sucker-punch','fire-blast'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/887.png',stats:[{stat:{name:'hp'},base_stat:88},{stat:{name:'attack'},base_stat:120},{stat:{name:'defense'},base_stat:75},{stat:{name:'special-attack'},base_stat:100},{stat:{name:'special-defense'},base_stat:75},{stat:{name:'speed'},base_stat:142}]},
+  // ── Gen 9 (Paldea) ──
+  {id:906,name:'sprigatito',types:['grass'],maxHp:40,atk:61,def:54,spatk:45,spdef:45,spd:65,moves:['leafage','quick-attack','hone-claws','magical-leaf'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/906.png',stats:[{stat:{name:'hp'},base_stat:40},{stat:{name:'attack'},base_stat:61},{stat:{name:'defense'},base_stat:54},{stat:{name:'special-attack'},base_stat:45},{stat:{name:'special-defense'},base_stat:45},{stat:{name:'speed'},base_stat:65}]},
+  {id:909,name:'fuecoco',types:['fire'],maxHp:67,atk:45,def:59,spatk:79,spdef:40,spd:36,moves:['ember','bite','flame-charge','incinerate'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/909.png',stats:[{stat:{name:'hp'},base_stat:67},{stat:{name:'attack'},base_stat:45},{stat:{name:'defense'},base_stat:59},{stat:{name:'special-attack'},base_stat:79},{stat:{name:'special-defense'},base_stat:40},{stat:{name:'speed'},base_stat:36}]},
+  {id:912,name:'quaxly',types:['water'],maxHp:55,atk:65,def:45,spatk:50,spdef:45,spd:50,moves:['water-gun','pound','quick-attack','aerial-ace'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/912.png',stats:[{stat:{name:'hp'},base_stat:55},{stat:{name:'attack'},base_stat:65},{stat:{name:'defense'},base_stat:45},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:45},{stat:{name:'speed'},base_stat:50}]},
+  {id:967,name:'frigibax',types:['dragon','ice'],maxHp:65,atk:75,def:45,spatk:35,spdef:45,spd:55,moves:['ice-fang','dragon-breath','tackle','icy-wind'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/967.png',stats:[{stat:{name:'hp'},base_stat:65},{stat:{name:'attack'},base_stat:75},{stat:{name:'defense'},base_stat:45},{stat:{name:'special-attack'},base_stat:35},{stat:{name:'special-defense'},base_stat:45},{stat:{name:'speed'},base_stat:55}]},
+  {id:963,name:'palafin',types:['water'],maxHp:100,atk:70,def:72,spatk:53,spdef:62,spd:100,moves:['flip-turn','jet-punch','wave-crash','draining-kiss'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/963.png',stats:[{stat:{name:'hp'},base_stat:100},{stat:{name:'attack'},base_stat:70},{stat:{name:'defense'},base_stat:72},{stat:{name:'special-attack'},base_stat:53},{stat:{name:'special-defense'},base_stat:62},{stat:{name:'speed'},base_stat:100}]},
 ];
 
 // ═══════════════════════════════════
@@ -834,15 +946,23 @@ function getFilteredPool(){
   const genF=document.getElementById('genFilter').value;
   let pool=[...FB];
 
-  if(typeF){
-    // filter fallback by type
-    pool=pool.filter(p=>p.types.includes(typeF));
-    if(pool.length<10) pool=[...FB]; // fallback if too few
-  }
+  // Apply gen filter first
   if(genF){
     const [lo,hi]=GEN_RANGES[genF];
     const genPool=pool.filter(p=>p.id>=lo&&p.id<=hi);
-    if(genPool.length>=10) pool=genPool;
+    if(genPool.length>=5) pool=genPool;
+  }
+
+  // Apply type filter — need at least 5 for two teams of 5 (with overlap OK)
+  if(typeF){
+    const typePool=pool.filter(p=>p.types.includes(typeF));
+    if(typePool.length>=5) pool=typePool;
+    else {
+      // Not enough typed pokemon in this gen — widen to all gens for that type
+      const allTyped=FB.filter(p=>p.types.includes(typeF));
+      if(allTyped.length>=5) pool=allTyped;
+      // else keep current pool (very rare type)
+    }
   }
   return pool;
 }
@@ -1003,6 +1123,44 @@ function onDrop(e,i){e.preventDefault();if(dragSrc===null||dragSrc===i)return;[p
 function onDE(){document.querySelectorAll('.arr-card').forEach(c=>c.classList.remove('dragging','drag-over'));dragSrc=null;}
 
 // ═══════════════════════════════════
+//  BATTLE MODE
+// ═══════════════════════════════════
+let battleMode = 'user'; // 'user' | 'ai'
+let simPaused = false;
+let simAbort = false;
+
+function setMode(m){
+  battleMode = m;
+  document.getElementById('modeUser').classList.toggle('active', m==='user');
+  document.getElementById('modeAI').classList.toggle('active', m==='ai');
+  document.getElementById('speedRow').style.display = m==='ai' ? 'flex' : 'none';
+  document.getElementById('modeDesc').textContent = m==='ai'
+    ? 'Sit back and watch — AI controls both sides automatically.'
+    : 'Pick your moves each turn and battle the CPU.';
+}
+
+function updateSpeedLabel(){
+  const v = parseInt(document.getElementById('simSpeed').value);
+  const labels = {1:'Slow',2:'Normal',3:'Fast',4:'Very Fast',5:'Instant'};
+  document.getElementById('speedLabel').textContent = labels[v]||'Normal';
+}
+
+function simDelay(){
+  const v = parseInt(document.getElementById('simSpeed').value);
+  // ms between moves: slow→1200, normal→700, fast→350, very fast→150, instant→30
+  return [1200,700,350,150,30][v-1]||700;
+}
+
+function togglePause(){
+  simPaused = !simPaused;
+  document.getElementById('pauseBtn').textContent = simPaused ? '▶ Resume' : '⏸ Pause';
+}
+
+async function waitIfPaused(){
+  while(simPaused && isBattling){ await sleep(200); }
+}
+
+// ═══════════════════════════════════
 //  BATTLE  (panel layout)
 // ═══════════════════════════════════
 let roundNum = 0;
@@ -1010,14 +1168,95 @@ let roundNum = 0;
 function startBattle(){
   playerTeam.forEach(p=>{p.hp=p.maxHp;});
   cpuTeam.forEach(p=>{p.hp=p.maxHp;});
-  playerIdx=0; cpuIdx=0; isBattling=true; roundNum=0;
+  playerIdx=0; cpuIdx=0; isBattling=true; roundNum=0; simPaused=false; simAbort=false;
   document.getElementById('battleYouLabel').textContent=trainerName();
   document.getElementById('battleLog').innerHTML='';
   showScreen('screenBattle');
   renderStrips();
   renderPlayerPanel();
   renderEnemyPanel();
-  logMsg(`<span class="ls">⚔ Battle Start! Round 1</span>`);
+  logMsg(`<span class="ls">⚔ Battle Start!</span>`);
+
+  const bw = document.getElementById('screenBattle').querySelector('.bw');
+  const pauseBtn = document.getElementById('pauseBtn');
+
+  if(battleMode==='ai'){
+    // AI mode: dim player moves, show pause btn, start auto-sim
+    bw.classList.add('ai-mode');
+    pauseBtn.style.display='inline-flex';
+    pauseBtn.textContent='⏸ Pause';
+    runAISim();
+  } else {
+    bw.classList.remove('ai-mode');
+    pauseBtn.style.display='none';
+    enableMoves();
+  }
+}
+
+async function runAISim(){
+  while(isBattling && !simAbort){
+    await waitIfPaused();
+    if(!isBattling) break;
+    await sleep(simDelay()*0.6);
+    await waitIfPaused();
+    if(!isBattling) break;
+
+    const p=playerTeam[playerIdx], e=cpuTeam[cpuIdx];
+
+    // ── PLAYER turn (AI picks best move by power) ──
+    const bestMi = p.moves.reduce((best,m,i)=> movePower(m)>movePower(p.moves[best])?i:best, 0);
+    const pMove=p.moves[bestMi];
+    const pDmg=calcDamage(p,e);
+    roundNum++;
+    logRound(roundNum);
+
+    const ps=document.getElementById('playerSprite');
+    const es=document.getElementById('enemySprite');
+    ps.classList.add('attacking'); await sleep(120);
+    es.classList.add('hit');
+    logMsg(`<span class="lp">${p.name}</span> used <span class="ls">${pMove.replace(/-/g,' ')}!</span> ${pDmg} dmg to <span class="le">${e.name}</span>.`);
+    e.hp-=pDmg; updatePanelHp('enemy',e); renderStrips();
+    await sleep(Math.min(520, simDelay()*0.7));
+    ps.classList.remove('attacking'); es.classList.remove('hit');
+
+    if(e.hp<=0){
+      e.hp=0; updatePanelHp('enemy',e);
+      es.classList.add('fainting');
+      logMsg(`<span class="le">${e.name} fainted!</span>`);
+      await sleep(Math.min(900,simDelay()));
+      es.classList.remove('fainting');
+      cpuIdx++;
+      if(cpuIdx>=cpuTeam.length){ endBattle('win'); return; }
+      logMsg(`CPU sends out <span class="le">${cpuTeam[cpuIdx].name}!</span>`);
+      renderStrips(); renderEnemyPanel();
+      continue;
+    }
+
+    // ── CPU turn ──
+    await waitIfPaused();
+    await sleep(simDelay()*0.5);
+    const cMove=e.moves[Math.floor(Math.random()*e.moves.length)];
+    const cDmg=calcDamage(e,p);
+
+    es.classList.add('attacking'); await sleep(120);
+    ps.classList.add('hit');
+    logMsg(`<span class="le">${e.name}</span> used <span class="ls">${cMove.replace(/-/g,' ')}!</span> ${cDmg} dmg to <span class="lp">${p.name}</span>.`);
+    p.hp-=cDmg; updatePanelHp('player',p); renderStrips();
+    await sleep(Math.min(520, simDelay()*0.7));
+    es.classList.remove('attacking'); ps.classList.remove('hit');
+
+    if(p.hp<=0){
+      p.hp=0; updatePanelHp('player',p);
+      ps.classList.add('fainting');
+      logMsg(`<span class="lp">${p.name} fainted!</span>`);
+      await sleep(Math.min(900,simDelay()));
+      ps.classList.remove('fainting');
+      playerIdx++;
+      if(playerIdx>=playerTeam.length){ endBattle('lose'); return; }
+      logMsg(`Go, <span class="lp">${playerTeam[playerIdx].name}!</span>`);
+      renderStrips(); renderPlayerPanel();
+    }
+  }
 }
 
 /* ── strips (team row at top) ── */
@@ -1173,7 +1412,9 @@ async function cpuAttack(){
 }
 
 function endBattle(result){
-  isBattling=false;
+  isBattling=false; simAbort=true;
+  document.getElementById('pauseBtn').style.display='none';
+  document.getElementById('screenBattle').querySelector('.bw').classList.remove('ai-mode');
   if(result==='win'){
     scores.you++;
     document.getElementById('resultTitle').textContent='YOU WIN!';
@@ -1191,8 +1432,13 @@ function endBattle(result){
   document.getElementById('resultOverlay').style.display='flex';
 }
 
-function forfeit(){ if(!confirm('Forfeit this battle?')) return; endBattle('lose'); }
-function resetGame(){ document.getElementById('resultOverlay').style.display='none'; loadTeams(); }
+function forfeit(){ if(!confirm('Forfeit this battle?')) return; simAbort=true; endBattle('lose'); }
+function resetGame(){
+  simAbort=true; simPaused=false;
+  document.getElementById('resultOverlay').style.display='none';
+  document.getElementById('screenBattle').querySelector('.bw').classList.remove('ai-mode');
+  loadTeams();
+}
 
 // ═══════════════════════════════════
 //  SHARE SCORE CARD
