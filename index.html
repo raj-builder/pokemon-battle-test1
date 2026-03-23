@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon Battle</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#0d1117;color:#e2e8f0;font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;}
+/* make all interactive elements have a comfortable tap target */
+button,select,input{touch-action:manipulation;}
+
+/* ── TYPE COLORS ── */
+.tb{display:inline-block;padding:2px 9px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-right:4px;}
+.t-normal{background:#A8A878;color:#fff;} .t-fire{background:#F08030;color:#fff;} .t-water{background:#6890F0;color:#fff;}
+.t-electric{background:#F8D030;color:#000;} .t-grass{background:#78C850;color:#fff;} .t-ice{background:#98D8D8;color:#000;}
+.t-fighting{background:#C03028;color:#fff;} .t-poison{background:#A040A0;color:#fff;} .t-ground{background:#E0C068;color:#000;}
+.t-flying{background:#A890F0;color:#fff;} .t-psychic{background:#F85888;color:#fff;} .t-bug{background:#A8B820;color:#fff;}
+.t-rock{background:#B8A038;color:#fff;} .t-ghost{background:#705898;color:#fff;} .t-dragon{background:#7038F8;color:#fff;}
+.t-dark{background:#705848;color:#fff;} .t-steel{background:#B8B8D0;color:#000;} .t-fairy{background:#EE99AC;color:#fff;}
+
+/* ── SCREENS ── */
+.screen{display:none;} .screen.active{display:block;}
+
+/* ══════════════════════════════════════
+   HEADER
+══════════════════════════════════════ */
+.hdr{text-align:center;padding:24px 20px 16px;position:relative;}
+.hdr-title{font-family:'Press Start 2P',monospace;font-size:26px;color:#fff;letter-spacing:4px;
+  text-shadow:3px 3px 0 #1a237e,0 0 30px rgba(100,120,255,.5);margin-bottom:6px;}
+.hdr-sub{font-size:12px;color:#64748b;letter-spacing:1px;margin-bottom:16px;}
+
+/* name + score bar */
+.top-bar{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;}
+.name-wrap{display:flex;align-items:center;gap:8px;}
+.name-label{font-size:11px;color:#64748b;font-weight:700;letter-spacing:1px;}
+.name-input{background:#161b27;border:1px solid #2a3349;border-radius:6px;color:#fff;
+  font-family:'Press Start 2P',monospace;font-size:10px;padding:6px 10px;width:140px;outline:none;}
+.name-input:focus{border-color:#60a5fa;}
+.score-wrap{display:flex;align-items:center;gap:14px;}
+.score-side{text-align:center;}
+.score-lbl{font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:3px;}
+.score-lbl.you{color:#60a5fa;} .score-lbl.cpu{color:#f87171;}
+.score-num{font-family:'Press Start 2P',monospace;font-size:16px;color:#fff;}
+.score-div{color:#374151;font-size:20px;}
+
+/* share button */
+.btn-share{background:linear-gradient(135deg,#1d9bf0,#0ea5e9);border:none;border-radius:8px;
+  color:#fff;font-size:12px;font-weight:700;padding:8px 16px;cursor:pointer;display:flex;
+  align-items:center;gap:6px;transition:opacity .2s;}
+.btn-share:hover{opacity:.85;}
+.btn-share svg{width:16px;height:16px;fill:#fff;}
+
+/* ── FILTERS BAR ── */
+.filters-bar{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 20px 16px;}
+.filter-group{display:flex;align-items:center;gap:6px;}
+.filter-label{font-size:10px;color:#64748b;font-weight:700;letter-spacing:.5px;}
+.filter-select{background:#161b27;border:1px solid #2a3349;border-radius:6px;color:#e2e8f0;
+  font-size:11px;padding:5px 10px;outline:none;cursor:pointer;}
+.filter-select:focus{border-color:#60a5fa;}
+
+/* ══════════════════════════════════════
+   LOADING
+══════════════════════════════════════ */
+.load-wrap{text-align:center;padding:80px 20px;}
+.pokeball{width:64px;height:64px;margin:0 auto 20px;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-txt{font-family:'Press Start 2P',monospace;font-size:10px;color:#4b5563;letter-spacing:2px;}
+
+/* ══════════════════════════════════════
+   TEAM SELECTION SCREEN (trading cards + deck)
+══════════════════════════════════════ */
+.select-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:0 20px 30px;align-items:flex-start;}
+
+/* YOUR HAND */
+.hand-section{flex:1;min-width:0;}
+.hand-title{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:2px;margin-bottom:14px;}
+.hand-title.yours{color:#60a5fa;} .hand-title.opp{color:#f87171;}
+.hand-cards{display:flex;flex-wrap:wrap;gap:14px;justify-content:flex-start;}
+
+/* ── TCG CARD ── */
+.tcg-card{
+  width:180px;flex-shrink:0;
+  border-radius:14px;
+  overflow:hidden;
+  position:relative;
+  cursor:default;
+  transition:transform .25s,box-shadow .25s;
+  box-shadow:0 6px 24px rgba(0,0,0,.6);
+  background:#1a1f2e;
+  border:2px solid transparent;
+}
+.tcg-card:hover{transform:translateY(-6px) rotate(-1deg);box-shadow:0 16px 40px rgba(0,0,0,.7);}
+
+/* card header strip — colour by type */
+.card-header{padding:8px 10px 6px;display:flex;justify-content:space-between;align-items:center;}
+.card-hp{font-family:'Press Start 2P',monospace;font-size:9px;color:#fff;opacity:.9;}
+.card-hp span{font-size:11px;}
+
+/* artwork area */
+.card-art{width:100%;height:140px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;}
+.card-art-bg{position:absolute;inset:0;opacity:.18;background-size:cover;background-position:center;}
+.card-sprite{width:110px;height:110px;image-rendering:pixelated;position:relative;z-index:1;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.8));transition:transform .3s;}
+.tcg-card:hover .card-sprite{transform:scale(1.08);}
+
+/* card body */
+.card-body{padding:8px 10px 10px;background:#111621;}
+.card-name{font-size:13px;font-weight:800;text-transform:capitalize;color:#fff;margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-types{margin-bottom:8px;}
+
+/* mini stat bars inside card */
+.mini-stats{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;}
+.mini-stat-row{display:flex;align-items:center;gap:5px;}
+.mini-stat-lbl{font-size:8px;color:#475569;width:34px;flex-shrink:0;font-weight:700;letter-spacing:.3px;}
+.mini-bar-bg{flex:1;height:5px;background:#1e2535;border-radius:3px;overflow:hidden;}
+.mini-bar-fill{height:100%;border-radius:3px;}
+.mini-stat-val{font-size:8px;color:#64748b;width:22px;text-align:right;}
+.s-hp{background:linear-gradient(90deg,#4ade80,#22c55e);} .s-atk{background:linear-gradient(90deg,#f87171,#ef4444);}
+.s-def{background:linear-gradient(90deg,#fb923c,#f97316);} .s-spatk{background:linear-gradient(90deg,#c084fc,#a855f7);}
+.s-spdef{background:linear-gradient(90deg,#60a5fa,#3b82f6);} .s-spd{background:linear-gradient(90deg,#facc15,#eab308);}
+
+/* moves on card */
+.card-moves{display:flex;flex-wrap:wrap;gap:3px;}
+.card-move{font-size:8px;background:#1e2535;border:1px solid #2a3349;border-radius:3px;
+  padding:2px 5px;color:#64748b;text-transform:capitalize;}
+
+/* reroll button on card */
+.card-reroll{position:absolute;top:6px;right:6px;z-index:10;
+  background:rgba(0,0,0,.7);border:1px solid #facc15;border-radius:50%;
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:13px;transition:background .2s;backdrop-filter:blur(4px);}
+.card-reroll:hover{background:rgba(250,204,21,.2);}
+.card-reroll.spinning{animation:spin .5s linear;}
+
+/* hidden card (opponent) */
+.hidden-tcg{width:180px;flex-shrink:0;height:300px;border-radius:14px;
+  background:linear-gradient(135deg,#161b27,#1e2535);border:2px solid #1e2535;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+.hidden-qmarks{font-size:28px;color:#2a3349;letter-spacing:8px;}
+.hidden-back{width:80px;height:80px;opacity:.15;}
+
+/* ── DECK IN MIDDLE ── */
+.deck-section{width:160px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:36px;}
+.deck-title{font-family:'Press Start 2P',monospace;font-size:8px;color:#facc15;letter-spacing:1px;text-align:center;}
+.deck-stack{position:relative;width:100px;height:140px;margin:0 auto;}
+.deck-card{position:absolute;width:100px;height:140px;border-radius:10px;
+  background:linear-gradient(135deg,#1e2535,#2a3349);
+  border:2px solid #334155;box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.deck-card:nth-child(1){transform:rotate(-8deg) translate(-4px,4px);}
+.deck-card:nth-child(2){transform:rotate(-4deg) translate(-2px,2px);}
+.deck-card:nth-child(3){transform:rotate(0deg);}
+.deck-card:nth-child(4){transform:rotate(4deg) translate(2px,-2px);}
+.deck-card:nth-child(5){transform:rotate(8deg) translate(4px,-4px);}
+.deck-pokeball{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+.deck-count{font-family:'Press Start 2P',monospace;font-size:9px;color:#64748b;text-align:center;}
+
+/* ── ACTION BUTTONS ── */
+.action-row{display:flex;justify-content:center;gap:12px;padding:4px 20px 28px;flex-wrap:wrap;}
+.btn-primary{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px;
+  background:#3b5bdb;color:#fff;border:none;border-radius:8px;padding:13px 26px;cursor:pointer;
+  transition:background .2s,transform .1s;}
+.btn-primary:hover{background:#4c6ef5;transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-secondary{font-size:13px;font-weight:600;background:#1e2535;color:#94a3b8;border:1px solid #2a3349;
+  border-radius:8px;padding:13px 24px;cursor:pointer;transition:background .2s;}
+.btn-secondary:hover{background:#263045;}
+.btn-danger{font-size:13px;font-weight:600;background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;
+  border-radius:8px;padding:10px 18px;cursor:pointer;transition:background .2s;}
+.btn-danger:hover{background:#991b1b;}
+
+/* ══════════════════════════════════════
+   ARRANGE SCREEN
+══════════════════════════════════════ */
+.arrange-wrap{max-width:580px;margin:0 auto;padding:0 20px 40px;}
+.screen-title{font-family:'Press Start 2P',monospace;font-size:12px;color:#facc15;
+  letter-spacing:2px;text-align:center;margin-bottom:8px;}
+.screen-desc{text-align:center;font-size:13px;color:#94a3b8;margin-bottom:20px;}
+.drag-hint{text-align:center;font-size:11px;color:#4b5563;margin-bottom:14px;}
+.arr-card{background:#161b27;border:1px solid #2a3349;border-radius:10px;padding:12px 14px;
+  margin-bottom:9px;display:flex;align-items:center;gap:12px;cursor:grab;transition:border-color .2s,background .2s;}
+.arr-card:hover{border-color:#4f6bbd;}
+.arr-card.dragging{opacity:.4;cursor:grabbing;}
+.arr-card.drag-over{border-color:#facc15;background:#1e2535;}
+.arr-num{font-family:'Press Start 2P',monospace;font-size:11px;color:#facc15;width:20px;flex-shrink:0;}
+.arr-sprite{width:50px;height:50px;image-rendering:pixelated;}
+.arr-info{flex:1;}
+.arr-name{font-size:14px;font-weight:700;text-transform:capitalize;margin-bottom:3px;}
+
+/* ══════════════════════════════════════
+   BATTLE SCREEN  (new panel layout)
+══════════════════════════════════════ */
+.bw{max-width:1000px;margin:0 auto;padding:0 16px 40px;}
+
+/* ── team strips ── */
+.strips-row{display:flex;justify-content:space-between;align-items:flex-start;
+  gap:12px;margin-bottom:14px;}
+.strip-side{flex:1;}
+.strip-side.right{text-align:right;}
+.strip-label{font-size:10px;font-weight:700;letter-spacing:1.5px;margin-bottom:6px;}
+.strip-label.you{color:#60a5fa;} .strip-label.cpu{color:#f87171;}
+.team-strip{display:flex;gap:6px;}
+.strip-side.right .team-strip{justify-content:flex-end;}
+
+.strip-slot{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:#161b27;border:2px solid #2a3349;border-radius:10px;
+  padding:6px 8px;cursor:default;transition:border-color .2s,background .2s;
+  min-width:60px;
+}
+.strip-slot.active{border-color:#60a5fa;background:#0f1a2e;}
+.strip-slot.active-cpu{border-color:#f87171;background:#1a0f0f;}
+.strip-slot.fainted{opacity:.35;filter:grayscale(1);}
+.strip-sprite{width:44px;height:44px;image-rendering:pixelated;}
+.strip-name{font-size:9px;color:#94a3b8;text-transform:capitalize;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58px;text-align:center;}
+.strip-hp-bar{width:44px;height:4px;background:#1e2535;border-radius:2px;overflow:hidden;}
+.strip-hp-fill{height:100%;border-radius:2px;background:#4ade80;transition:width .4s;}
+
+/* ── dual panels ── */
+.dual-panels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+
+.battle-panel{
+  background:#111926;border:1px solid #2a3349;border-radius:14px;
+  padding:20px 18px 16px;display:flex;flex-direction:column;align-items:center;
+  position:relative;min-height:360px;
+}
+.player-panel{border-color:#1e3a5f;}
+.cpu-panel{border-color:#3a1e1e;}
+
+.panel-name{font-family:'Press Start 2P',monospace;font-size:14px;color:#fff;
+  text-transform:capitalize;margin-bottom:2px;text-align:center;}
+.panel-num{font-size:11px;color:#4b5563;margin-bottom:12px;}
+.panel-sprite-wrap{margin-bottom:10px;}
+.panel-sprite{width:120px;height:120px;image-rendering:pixelated;
+  filter:drop-shadow(0 4px 14px rgba(0,0,0,.7));transition:transform .3s;}
+.panel-sprite.flip{transform:scaleX(-1);}
+.panel-sprite.attacking{animation:attackAnim .4s ease;}
+.panel-sprite.flip.attacking{animation:attackAnimFlip .4s ease;}
+.panel-sprite.hit{animation:hitAnim .3s ease;}
+.panel-sprite.fainting{animation:faintAnim .6s ease forwards;}
+
+.panel-type-row{margin-bottom:14px;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;}
+
+.panel-hp-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1px;
+  align-self:flex-start;margin-bottom:4px;}
+.panel-hp-bg{width:100%;height:12px;background:#1e2535;border-radius:6px;overflow:hidden;margin-bottom:3px;}
+.panel-hp-fill{height:100%;border-radius:6px;
+  background:linear-gradient(90deg,#4ade80,#22c55e);transition:width .5s;}
+.panel-hp-fill.enemy{background:linear-gradient(90deg,#f87171,#ef4444);}
+.panel-hp-pct{font-size:11px;color:#64748b;align-self:flex-end;margin-bottom:12px;}
+
+/* ── move buttons inside panels ── */
+.panel-moves{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:auto;}
+.pmove{background:#161b27;border:1px solid #2a3349;border-radius:8px;
+  padding:10px 10px;color:#e2e8f0;font-size:11px;font-weight:600;cursor:pointer;
+  text-align:left;text-transform:capitalize;line-height:1.3;
+  transition:background .15s,border-color .15s,transform .1s;}
+.pmove:hover:not(:disabled){background:#1e2a42;border-color:#4f6bbd;transform:translateY(-1px);}
+.pmove:active:not(:disabled){transform:translateY(0);}
+.pmove:disabled{opacity:.3;cursor:not-allowed;}
+.pmove .mtype-tag{display:block;font-size:9px;color:#64748b;margin-top:2px;font-weight:400;text-transform:uppercase;}
+/* CPU moves are info-only */
+.pmove.cpu-move{cursor:default;opacity:.55;}
+.pmove.cpu-move:hover{transform:none;background:#161b27;border-color:#2a3349;}
+
+/* ── battle log ── */
+.b-log{background:#0d1117;border:1px solid #1e2535;border-radius:12px;
+  padding:14px 16px;margin-bottom:14px;max-height:220px;overflow-y:auto;
+  font-size:13px;line-height:1.75;color:#cbd5e1;scroll-behavior:smooth;}
+.b-log::-webkit-scrollbar{width:4px;}
+.b-log::-webkit-scrollbar-track{background:#0d1117;}
+.b-log::-webkit-scrollbar-thumb{background:#2a3349;border-radius:2px;}
+.log-line{margin-bottom:1px;}
+.log-round{color:#374151;font-size:11px;text-align:center;margin:6px 0 2px;letter-spacing:1px;}
+.lp{color:#60a5fa;font-weight:600;} .le{color:#f87171;font-weight:600;}
+.ls{color:#facc15;font-weight:700;} .lg{color:#4ade80;font-weight:700;}
+
+/* ── RESULT OVERLAY ── */
+.result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;
+  align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);}
+.result-box{background:#161b27;border:2px solid #2a3349;border-radius:16px;padding:38px 48px;
+  text-align:center;max-width:420px;}
+.result-title{font-family:'Press Start 2P',monospace;font-size:22px;margin-bottom:10px;}
+.result-title.win{color:#4ade80;text-shadow:0 0 20px rgba(74,222,128,.4);}
+.result-title.lose{color:#f87171;text-shadow:0 0 20px rgba(248,113,113,.4);}
+.result-sub{color:#94a3b8;font-size:13px;margin-bottom:22px;}
+.result-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+
+/* ── SHARE CARD OVERLAY ── */
+.share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;
+  align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(8px);}
+.share-box{background:#161b27;border:2px solid #2a3349;border-radius:16px;padding:28px;
+  max-width:500px;width:90%;text-align:center;}
+.share-title{font-family:'Press Start 2P',monospace;font-size:11px;color:#facc15;
+  letter-spacing:2px;margin-bottom:16px;}
+#shareCanvas{border-radius:10px;max-width:100%;border:1px solid #2a3349;}
+.share-btns{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.btn-x{background:#000;color:#fff;border:1px solid #333;border-radius:8px;padding:10px 20px;
+  font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.btn-x:hover{background:#111;}
+.btn-ig{background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;border:none;
+  border-radius:8px;padding:10px 20px;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-ig:hover{opacity:.88;}
+.btn-dl{background:#1e2535;color:#94a3b8;border:1px solid #2a3349;border-radius:8px;
+  padding:10px 20px;font-weight:700;font-size:13px;cursor:pointer;}
+
+/* ── ANIMATIONS ── */
+@keyframes faintAnim{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(30px);opacity:0;}}
+.fainting{animation:faintAnim .6s ease forwards;}
+@keyframes attackAnim{0%{transform:translateX(0);}25%{transform:translateX(16px);}75%{transform:translateX(-8px);}100%{transform:translateX(0);}}
+@keyframes attackAnimFlip{0%{transform:scaleX(-1) translateX(0);}25%{transform:scaleX(-1) translateX(16px);}75%{transform:scaleX(-1) translateX(-8px);}100%{transform:scaleX(-1) translateX(0);}}
+.attacking{animation:attackAnim .4s ease;}
+@keyframes hitAnim{0%,100%{filter:brightness(1);}50%{filter:brightness(2.5) saturate(3);}}
+.hit{animation:hitAnim .3s ease;}
+@keyframes dealAnim{0%{transform:translateY(-60px) rotate(-20deg);opacity:0;}100%{transform:translateY(0) rotate(0);opacity:1;}}
+.card-deal{animation:dealAnim .35s ease forwards;}
+@keyframes flipAnim{0%{transform:rotateY(90deg);opacity:0;}100%{transform:rotateY(0);opacity:1;}}
+.card-flip{animation:flipAnim .3s ease forwards;}
+
+/* ══════════════════════════════════════
+   TABLET  ≤ 900px
+══════════════════════════════════════ */
+@media(max-width:900px){
+  /* header */
+  .hdr-title{font-size:20px;letter-spacing:2px;}
+  .top-bar{gap:12px;}
+
+  /* team selection */
+  .select-layout{flex-direction:column;padding:0 12px 24px;}
+  .deck-section{width:100%;flex-direction:row;padding-top:0;justify-content:center;gap:20px;}
+  .deck-stack{margin:0;}
+  .hand-cards{justify-content:center;}
+  .tcg-card{width:158px;}
+  .hidden-tcg{width:158px;height:268px;}
+
+  /* battle (tablet) */
+  .bw{padding:0 12px 32px;}
+  .dual-panels{gap:10px;}
+  .panel-sprite{width:100px;height:100px;}
+  .strip-slot{min-width:54px;}
+}
+
+/* ══════════════════════════════════════
+   MOBILE  ≤ 480px  (most phones)
+══════════════════════════════════════ */
+@media(max-width:480px){
+
+  /* ── header ── */
+  .hdr{padding:16px 12px 10px;}
+  .hdr-title{font-size:14px;letter-spacing:1px;}
+  .hdr-sub{font-size:11px;margin-bottom:10px;}
+
+  /* name + score + share: stack vertically */
+  .top-bar{flex-direction:column;gap:10px;margin-bottom:10px;}
+  .name-wrap{width:100%;justify-content:center;}
+  .name-input{width:160px;font-size:9px;}
+  .score-wrap{gap:18px;}
+  .score-num{font-size:14px;}
+  .btn-share{font-size:11px;padding:8px 14px;}
+
+  /* filters: full-width selects */
+  .filters-bar{gap:8px;padding:0 12px 12px;}
+  .filter-group{flex:1;min-width:0;}
+  .filter-label{white-space:nowrap;}
+  .filter-select{width:100%;font-size:13px;padding:9px 10px;border-radius:8px;}
+
+  /* ── team selection ── */
+  .select-layout{padding:0 8px 20px;gap:16px;}
+
+  /* hide opponent hand on mobile — saves space, still hidden anyway */
+  .hand-section.opp-section{display:none;}
+
+  /* deck becomes a thin horizontal strip */
+  .deck-section{flex-direction:row;align-items:center;justify-content:center;
+    width:100%;gap:14px;padding:8px 12px;
+    background:#111621;border-radius:12px;border:1px solid #1e2535;}
+  .deck-stack{width:60px;height:84px;flex-shrink:0;}
+  .deck-card{width:60px;height:84px;border-radius:6px;}
+  .deck-card:nth-child(1){transform:rotate(-6deg) translate(-3px,3px);}
+  .deck-card:nth-child(2){transform:rotate(-3deg) translate(-1.5px,1.5px);}
+  .deck-card:nth-child(3){transform:rotate(0);}
+  .deck-card:nth-child(4){transform:rotate(3deg) translate(1.5px,-1.5px);}
+  .deck-card:nth-child(5){transform:rotate(6deg) translate(3px,-3px);}
+  .deck-pokeball svg{width:24px;height:24px;}
+  .deck-title{font-size:7px;}
+  .deck-count{font-size:8px;}
+
+  /* cards: 2-per-row hand layout */
+  .hand-cards{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    justify-items:center;
+  }
+  .tcg-card{width:100%;max-width:170px;}
+  .card-art{height:110px;}
+  .card-sprite{width:88px;height:88px;}
+  .card-body{padding:6px 8px 8px;}
+  .mini-stat-lbl{font-size:7px;width:28px;}
+  .mini-stat-val{font-size:7px;width:18px;}
+  .mini-bar-bg{height:4px;}
+  .card-move{font-size:7px;}
+  /* reroll button: bigger tap target */
+  .card-reroll{width:32px;height:32px;font-size:16px;top:4px;right:4px;}
+
+  .hand-title{font-size:9px;letter-spacing:1px;margin-bottom:10px;}
+  .screen-title{font-size:9px;letter-spacing:1px;}
+  .screen-desc{font-size:12px;}
+
+  /* action buttons: full width */
+  .action-row{flex-direction:column;align-items:center;padding:8px 16px 24px;gap:10px;}
+  .btn-primary{width:100%;max-width:320px;font-size:9px;padding:15px 20px;text-align:center;}
+  .btn-secondary{width:100%;max-width:320px;text-align:center;padding:13px 20px;}
+
+  /* ── arrange screen ── */
+  .arrange-wrap{padding:0 12px 32px;}
+  .arr-card{padding:10px 12px;gap:10px;}
+  .arr-sprite{width:44px;height:44px;}
+  .arr-name{font-size:13px;}
+  .arr-num{font-size:10px;}
+
+  /* ── battle screen (new panel layout) ── */
+  .bw{padding:0 8px 24px;}
+
+  /* team strips: smaller slots */
+  .strips-row{gap:6px;margin-bottom:10px;}
+  .strip-slot{min-width:48px;padding:5px 6px;}
+  .strip-sprite{width:36px;height:36px;}
+  .strip-name{font-size:8px;max-width:46px;}
+  .strip-hp-bar{width:36px;}
+
+  /* dual panels: stack on very small phones */
+  .dual-panels{grid-template-columns:1fr 1fr;gap:8px;}
+  .battle-panel{padding:14px 12px 12px;min-height:280px;}
+  .panel-name{font-size:11px;}
+  .panel-sprite{width:80px;height:80px;}
+  .panel-hp-bg{height:9px;}
+
+  /* move buttons inside panels */
+  .panel-moves{gap:5px;}
+  .pmove{font-size:11px;padding:9px 8px;}
+  .pmove .mtype-tag{font-size:8px;}
+
+  /* battle log */
+  .b-log{font-size:12px;padding:10px 12px;line-height:1.6;max-height:160px;}
+
+  .btn-danger{width:100%;max-width:320px;padding:12px;font-size:14px;border-radius:10px;}
+
+  /* ── result overlay ── */
+  .result-box{padding:28px 20px;margin:16px;border-radius:14px;}
+  .result-title{font-size:16px;}
+  .result-sub{font-size:12px;margin-bottom:16px;}
+  .result-btns{flex-direction:column;align-items:center;gap:10px;}
+  .result-btns .btn-primary{width:100%;max-width:260px;font-size:9px;}
+  .result-btns .btn-share{width:100%;max-width:260px;justify-content:center;}
+
+  /* ── share overlay ── */
+  .share-box{padding:20px 14px;margin:10px;}
+  .share-title{font-size:9px;letter-spacing:1px;}
+  .share-btns{flex-direction:column;align-items:center;gap:8px;}
+  .share-btns button{width:100%;max-width:260px;justify-content:center;}
+  #shareCanvas{width:100% !important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER (always visible) ══ -->
+<div class="hdr" id="mainHeader">
+  <div class="hdr-title">POKÉMON BATTLE</div>
+  <div class="hdr-sub">5v5 Team Battle</div>
+
+  <div class="top-bar">
+    <div class="name-wrap">
+      <span class="name-label">TRAINER</span>
+      <input class="name-input" id="playerNameInput" value="ASH" maxlength="12" placeholder="YOUR NAME">
+    </div>
+    <div class="score-wrap">
+      <div class="score-side"><div class="score-lbl you" id="youLabel">YOU</div><div class="score-num" id="scoreYou">0</div></div>
+      <div class="score-div">|</div>
+      <div class="score-side"><div class="score-lbl cpu">CPU</div><div class="score-num" id="scoreCpu">0</div></div>
+    </div>
+    <button class="btn-share" onclick="openShare()">
+      <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92S19.61 16.08 18 16.08z"/></svg>
+      Share Score
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="filter-group">
+      <span class="filter-label">TYPE</span>
+      <select class="filter-select" id="typeFilter">
+        <option value="">Any Type</option>
+        <option value="normal">Normal</option><option value="fire">Fire</option>
+        <option value="water">Water</option><option value="electric">Electric</option>
+        <option value="grass">Grass</option><option value="ice">Ice</option>
+        <option value="fighting">Fighting</option><option value="poison">Poison</option>
+        <option value="ground">Ground</option><option value="flying">Flying</option>
+        <option value="psychic">Psychic</option><option value="bug">Bug</option>
+        <option value="rock">Rock</option><option value="ghost">Ghost</option>
+        <option value="dragon">Dragon</option><option value="dark">Dark</option>
+        <option value="steel">Steel</option><option value="fairy">Fairy</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">GEN</span>
+      <select class="filter-select" id="genFilter">
+        <option value="">Any Gen</option>
+        <option value="1">Gen 1 (Kanto)</option>
+        <option value="2">Gen 2 (Johto)</option>
+        <option value="3">Gen 3 (Hoenn)</option>
+      </select>
+    </div>
+    <button class="btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="applyFiltersAndReload()">Apply</button>
+  </div>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div id="screenLoading" class="screen active load-wrap">
+  <svg class="pokeball" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="48" fill="none" stroke="#3b5bdb" stroke-width="4"/>
+    <line x1="2" y1="50" x2="98" y2="50" stroke="#3b5bdb" stroke-width="4"/>
+    <circle cx="50" cy="50" r="13" fill="#0d1117" stroke="#3b5bdb" stroke-width="4"/>
+    <circle cx="50" cy="50" r="6" fill="#3b5bdb"/>
+  </svg>
+  <div class="load-txt" id="loadTxt">LOADING POKÉMON...</div>
+</div>
+
+<!-- ══ TEAM SELECTION (TCG hand + deck) ══ -->
+<div id="screenReview" class="screen">
+  <div style="text-align:center;margin-bottom:14px;">
+    <div class="screen-title" style="font-size:11px;">PICK YOUR TEAM</div>
+    <div style="font-size:13px;color:#64748b;">Your 5 cards. Reroll individual ones from the deck.</div>
+  </div>
+  <div class="select-layout">
+    <!-- YOUR HAND -->
+    <div class="hand-section">
+      <div class="hand-title yours">YOUR HAND</div>
+      <div class="hand-cards" id="yourHandCards"></div>
+    </div>
+
+    <!-- DECK -->
+    <div class="deck-section">
+      <div class="deck-title">DECK</div>
+      <div class="deck-stack" id="deckStack">
+        <div class="deck-card"><div class="deck-pokeball">
+          <svg width="40" height="40" viewBox="0 0 100 100" opacity=".3">
+            <circle cx="50" cy="50" r="48" fill="none" stroke="#fff" stroke-width="5"/>
+            <line x1="2" y1="50" x2="98" y2="50" stroke="#fff" stroke-width="5"/>
+            <circle cx="50" cy="50" r="14" fill="#0d1117" stroke="#fff" stroke-width="5"/>
+            <circle cx="50" cy="50" r="7" fill="#fff"/>
+          </svg>
+        </div></div>
+        <div class="deck-card"></div>
+        <div class="deck-card"></div>
+        <div class="deck-card"></div>
+        <div class="deck-card"></div>
+      </div>
+      <div class="deck-count" id="deckCount">∞ cards</div>
+      <div style="margin-top:10px;text-align:center;font-size:10px;color:#4b5563;line-height:1.6;">
+        Click ⟳ on any<br>card to reroll it
+      </div>
+    </div>
+
+    <!-- OPPONENT (hidden) -->
+    <div class="hand-section opp-section">
+      <div class="hand-title opp">OPPONENT</div>
+      <div class="hand-cards" id="oppHandCards"></div>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn-primary" onclick="goToArrange()">ARRANGE ORDER</button>
+    <button class="btn-secondary" onclick="rerollAll()">Reroll All 5</button>
+  </div>
+</div>
+
+<!-- ══ ARRANGE ══ -->
+<div id="screenArrange" class="screen">
+  <div class="arrange-wrap">
+    <div class="screen-title">ARRANGE ORDER</div>
+    <div class="screen-desc">Drag to set battle order. First Pokémon fights first.</div>
+    <div class="drag-hint">☰ drag to reorder</div>
+    <div id="arrangeList"></div>
+    <div class="action-row" style="padding:16px 0 0;">
+      <button class="btn-primary" onclick="startBattle()">START BATTLE</button>
+      <button class="btn-secondary" onclick="showScreen('screenReview')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BATTLE ══ -->
+<div id="screenBattle" class="screen">
+  <div class="bw">
+
+    <!-- ── TEAM STRIPS ── -->
+    <div class="strips-row">
+      <!-- YOUR strip -->
+      <div class="strip-side">
+        <div class="strip-label you" id="battleYouLabel">YOUR TEAM</div>
+        <div class="team-strip" id="yourStrip"></div>
+      </div>
+      <!-- CPU strip -->
+      <div class="strip-side right">
+        <div class="strip-label cpu">OPPONENT</div>
+        <div class="team-strip" id="cpuStrip"></div>
+      </div>
+    </div>
+
+    <!-- ── DUAL PANELS ── -->
+    <div class="dual-panels">
+
+      <!-- PLAYER PANEL -->
+      <div class="battle-panel player-panel" id="playerPanel">
+        <div class="panel-name" id="playerName">—</div>
+        <div class="panel-num" id="playerNum">#000</div>
+        <div class="panel-sprite-wrap">
+          <img class="panel-sprite" id="playerSprite" src="" alt="">
+        </div>
+        <div class="panel-type-row" id="playerTypes"></div>
+        <div class="panel-hp-label">HP</div>
+        <div class="panel-hp-bg">
+          <div class="panel-hp-fill" id="playerHpBar" style="width:100%"></div>
+        </div>
+        <div class="panel-hp-pct" id="playerHpPct">100%</div>
+        <div class="panel-moves" id="playerMoves"></div>
+      </div>
+
+      <!-- CPU PANEL -->
+      <div class="battle-panel cpu-panel" id="enemyPanel">
+        <div class="panel-name" id="enemyName">—</div>
+        <div class="panel-num" id="enemyNum">#000</div>
+        <div class="panel-sprite-wrap">
+          <img class="panel-sprite flip" id="enemySprite" src="" alt="">
+        </div>
+        <div class="panel-type-row" id="enemyTypes"></div>
+        <div class="panel-hp-label">HP</div>
+        <div class="panel-hp-bg">
+          <div class="panel-hp-fill enemy" id="enemyHpBar" style="width:100%"></div>
+        </div>
+        <div class="panel-hp-pct" id="enemyHpPct">100%</div>
+        <!-- CPU moves shown for info, disabled -->
+        <div class="panel-moves" id="enemyMoves"></div>
+      </div>
+
+    </div><!-- /dual-panels -->
+
+    <!-- ── BATTLE LOG ── -->
+    <div class="b-log" id="battleLog"></div>
+
+    <div style="text-align:center;padding-bottom:24px;">
+      <button class="btn-danger" onclick="forfeit()">Forfeit Battle</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULT OVERLAY ══ -->
+<div id="resultOverlay" class="result-overlay" style="display:none;">
+  <div class="result-box">
+    <div class="result-title" id="resultTitle">YOU WIN!</div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="result-btns">
+      <button class="btn-primary" onclick="resetGame()">PLAY AGAIN</button>
+      <button class="btn-share" onclick="openShare()">
+        <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92S19.61 16.08 18 16.08z"/></svg>
+        Share Score
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SHARE OVERLAY ══ -->
+<div id="shareOverlay" class="share-overlay" style="display:none;">
+  <div class="share-box">
+    <div class="share-title">SHARE YOUR SCORE</div>
+    <canvas id="shareCanvas" width="480" height="220"></canvas>
+    <div class="share-btns">
+      <button class="btn-x" onclick="shareToX()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        Post to X
+      </button>
+      <button class="btn-ig" onclick="shareToIG()">📸 Save for Instagram</button>
+      <button class="btn-dl" onclick="downloadCard()">⬇ Download</button>
+      <button class="btn-secondary" onclick="closeShare()" style="padding:10px 16px;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- hidden share card template -->
+<div id="shareCardTemplate" style="display:none;"></div>
+
+<script>
+// ═══════════════════════════════════
+//  STATE
+// ═══════════════════════════════════
+let playerTeam=[], cpuTeam=[];
+let playerIdx=0, cpuIdx=0;
+let isBattling=false;
+let scores={you:0,cpu:0};
+let dragSrc=null;
+
+// ── Generation ranges (national dex numbers)
+const GEN_RANGES = { '1':[1,151], '2':[152,251], '3':[252,386] };
+
+// ── Full pool by gen
+const ALL_POOL = {
+  '1':[1,4,7,25,39,52,54,58,63,66,74,77,79,81,84,88,90,92,96,100,102,104,106,107,109,111,113,115,116,120,122,124,126,128,130,131,133,137,143,147],
+  '2':[152,155,158,175,177,179,183,185,187,190,194,196,197,202,206,209,211,213,215,218,220,222,225,228,231,234,236,238,240,246],
+  '3':[252,255,258,270,273,276,278,280,283,285,287,290,293,296,298,300,302,304,306,309,311,313,315,318,320,322,325,327,331,333]
+};
+
+// ── Type → pokemon ids mapping (from fallback pool)
+const TYPE_MAP = {
+  grass:   [1,152,187,285,315],
+  poison:  [1,92,109],
+  fire:    [4,58,155,218,240],
+  water:   [7,54,79,90,116,131,158,258,318],
+  electric:[25,81,179],
+  normal:  [39,52,113,133,143,190,202,206,234,300,327],
+  psychic: [63,79,96,122,196,202,238,280],
+  fighting:[66,106,236,296],
+  rock:    [74,104,246,302,304],
+  ground:  [74,104,246],
+  ghost:   [92],
+  ice:     [131,220,225],
+  dragon:  [147],
+  dark:    [197,197,228],
+  flying:  [84,276,278,333],
+  bug:     [290,293],
+  steel:   [81,304],
+  fairy:   [39,175,183,209,300]
+};
+
+// ═══════════════════════════════════
+//  FALLBACK DATA
+// ═══════════════════════════════════
+const FB = [
+  {id:1,name:'bulbasaur',types:['grass','poison'],maxHp:45,atk:49,def:49,spatk:65,spdef:65,spd:45,moves:['tackle','vine-whip','razor-leaf','leech-seed'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png',stats:[{stat:{name:'hp'},base_stat:45},{stat:{name:'attack'},base_stat:49},{stat:{name:'defense'},base_stat:49},{stat:{name:'special-attack'},base_stat:65},{stat:{name:'special-defense'},base_stat:65},{stat:{name:'speed'},base_stat:45}]},
+  {id:4,name:'charmander',types:['fire'],maxHp:39,atk:52,def:43,spatk:60,spdef:50,spd:65,moves:['scratch','ember','flamethrower','dragon-rage'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png',stats:[{stat:{name:'hp'},base_stat:39},{stat:{name:'attack'},base_stat:52},{stat:{name:'defense'},base_stat:43},{stat:{name:'special-attack'},base_stat:60},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:65}]},
+  {id:7,name:'squirtle',types:['water'],maxHp:44,atk:48,def:65,spatk:50,spdef:64,spd:43,moves:['tackle','water-gun','bubble-beam','withdraw'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png',stats:[{stat:{name:'hp'},base_stat:44},{stat:{name:'attack'},base_stat:48},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:64},{stat:{name:'speed'},base_stat:43}]},
+  {id:25,name:'pikachu',types:['electric'],maxHp:35,atk:55,def:40,spatk:50,spdef:50,spd:90,moves:['thunder-shock','quick-attack','thunderbolt','iron-tail'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',stats:[{stat:{name:'hp'},base_stat:35},{stat:{name:'attack'},base_stat:55},{stat:{name:'defense'},base_stat:40},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:90}]},
+  {id:39,name:'jigglypuff',types:['normal','fairy'],maxHp:115,atk:45,def:20,spatk:45,spdef:25,spd:20,moves:['sing','pound','body-slam','double-slap'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png',stats:[{stat:{name:'hp'},base_stat:115},{stat:{name:'attack'},base_stat:45},{stat:{name:'defense'},base_stat:20},{stat:{name:'special-attack'},base_stat:45},{stat:{name:'special-defense'},base_stat:25},{stat:{name:'speed'},base_stat:20}]},
+  {id:52,name:'meowth',types:['normal'],maxHp:40,atk:45,def:35,spatk:40,spdef:40,spd:90,moves:['scratch','bite','pay-day','fury-swipes'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/52.png',stats:[{stat:{name:'hp'},base_stat:40},{stat:{name:'attack'},base_stat:45},{stat:{name:'defense'},base_stat:35},{stat:{name:'special-attack'},base_stat:40},{stat:{name:'special-defense'},base_stat:40},{stat:{name:'speed'},base_stat:90}]},
+  {id:54,name:'psyduck',types:['water'],maxHp:50,atk:52,def:48,spatk:65,spdef:50,spd:55,moves:['scratch','water-gun','confusion','disable'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png',stats:[{stat:{name:'hp'},base_stat:50},{stat:{name:'attack'},base_stat:52},{stat:{name:'defense'},base_stat:48},{stat:{name:'special-attack'},base_stat:65},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:55}]},
+  {id:58,name:'growlithe',types:['fire'],maxHp:55,atk:70,def:45,spatk:70,spdef:50,spd:60,moves:['bite','ember','flamethrower','roar'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/58.png',stats:[{stat:{name:'hp'},base_stat:55},{stat:{name:'attack'},base_stat:70},{stat:{name:'defense'},base_stat:45},{stat:{name:'special-attack'},base_stat:70},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:60}]},
+  {id:63,name:'abra',types:['psychic'],maxHp:25,atk:20,def:15,spatk:105,spdef:55,spd:90,moves:['teleport','confusion','psybeam','reflect'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/63.png',stats:[{stat:{name:'hp'},base_stat:25},{stat:{name:'attack'},base_stat:20},{stat:{name:'defense'},base_stat:15},{stat:{name:'special-attack'},base_stat:105},{stat:{name:'special-defense'},base_stat:55},{stat:{name:'speed'},base_stat:90}]},
+  {id:66,name:'machop',types:['fighting'],maxHp:70,atk:80,def:50,spatk:35,spdef:35,spd:35,moves:['karate-chop','low-kick','seismic-toss','leer'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/66.png',stats:[{stat:{name:'hp'},base_stat:70},{stat:{name:'attack'},base_stat:80},{stat:{name:'defense'},base_stat:50},{stat:{name:'special-attack'},base_stat:35},{stat:{name:'special-defense'},base_stat:35},{stat:{name:'speed'},base_stat:35}]},
+  {id:74,name:'geodude',types:['rock','ground'],maxHp:40,atk:80,def:100,spatk:30,spdef:30,spd:20,moves:['tackle','rock-throw','magnitude','defense-curl'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/74.png',stats:[{stat:{name:'hp'},base_stat:40},{stat:{name:'attack'},base_stat:80},{stat:{name:'defense'},base_stat:100},{stat:{name:'special-attack'},base_stat:30},{stat:{name:'special-defense'},base_stat:30},{stat:{name:'speed'},base_stat:20}]},
+  {id:79,name:'slowpoke',types:['water','psychic'],maxHp:90,atk:65,def:65,spatk:40,spdef:40,spd:15,moves:['tackle','confusion','water-gun','amnesia'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/79.png',stats:[{stat:{name:'hp'},base_stat:90},{stat:{name:'attack'},base_stat:65},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:40},{stat:{name:'special-defense'},base_stat:40},{stat:{name:'speed'},base_stat:15}]},
+  {id:92,name:'gastly',types:['ghost','poison'],maxHp:30,atk:35,def:30,spatk:100,spdef:35,spd:80,moves:['lick','hypnosis','night-shade','curse'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/92.png',stats:[{stat:{name:'hp'},base_stat:30},{stat:{name:'attack'},base_stat:35},{stat:{name:'defense'},base_stat:30},{stat:{name:'special-attack'},base_stat:100},{stat:{name:'special-defense'},base_stat:35},{stat:{name:'speed'},base_stat:80}]},
+  {id:104,name:'cubone',types:['ground'],maxHp:50,atk:50,def:95,spatk:40,spdef:50,spd:35,moves:['bone-club','headbutt','leer','bone-rush'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/104.png',stats:[{stat:{name:'hp'},base_stat:50},{stat:{name:'attack'},base_stat:50},{stat:{name:'defense'},base_stat:95},{stat:{name:'special-attack'},base_stat:40},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:35}]},
+  {id:113,name:'chansey',types:['normal'],maxHp:250,atk:5,def:5,spatk:35,spdef:105,spd:50,moves:['pound','egg-bomb','soft-boiled','double-slap'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/113.png',stats:[{stat:{name:'hp'},base_stat:250},{stat:{name:'attack'},base_stat:5},{stat:{name:'defense'},base_stat:5},{stat:{name:'special-attack'},base_stat:35},{stat:{name:'special-defense'},base_stat:105},{stat:{name:'speed'},base_stat:50}]},
+  {id:131,name:'lapras',types:['water','ice'],maxHp:130,atk:85,def:80,spatk:85,spdef:95,spd:60,moves:['water-gun','ice-beam','body-slam','confuse-ray'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/131.png',stats:[{stat:{name:'hp'},base_stat:130},{stat:{name:'attack'},base_stat:85},{stat:{name:'defense'},base_stat:80},{stat:{name:'special-attack'},base_stat:85},{stat:{name:'special-defense'},base_stat:95},{stat:{name:'speed'},base_stat:60}]},
+  {id:133,name:'eevee',types:['normal'],maxHp:55,atk:55,def:50,spatk:45,spdef:65,spd:55,moves:['tackle','quick-attack','sand-attack','bite'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png',stats:[{stat:{name:'hp'},base_stat:55},{stat:{name:'attack'},base_stat:55},{stat:{name:'defense'},base_stat:50},{stat:{name:'special-attack'},base_stat:45},{stat:{name:'special-defense'},base_stat:65},{stat:{name:'speed'},base_stat:55}]},
+  {id:143,name:'snorlax',types:['normal'],maxHp:160,atk:110,def:65,spatk:65,spdef:110,spd:30,moves:['tackle','body-slam','yawn','rest'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png',stats:[{stat:{name:'hp'},base_stat:160},{stat:{name:'attack'},base_stat:110},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:65},{stat:{name:'special-defense'},base_stat:110},{stat:{name:'speed'},base_stat:30}]},
+  {id:147,name:'dratini',types:['dragon'],maxHp:41,atk:64,def:45,spatk:50,spdef:50,spd:50,moves:['wrap','thunder-wave','slam','agility'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/147.png',stats:[{stat:{name:'hp'},base_stat:41},{stat:{name:'attack'},base_stat:64},{stat:{name:'defense'},base_stat:45},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:50}]},
+  {id:152,name:'chikorita',types:['grass'],maxHp:45,atk:49,def:65,spatk:49,spdef:65,spd:45,moves:['tackle','razor-leaf','reflect','poison-powder'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/152.png',stats:[{stat:{name:'hp'},base_stat:45},{stat:{name:'attack'},base_stat:49},{stat:{name:'defense'},base_stat:65},{stat:{name:'special-attack'},base_stat:49},{stat:{name:'special-defense'},base_stat:65},{stat:{name:'speed'},base_stat:45}]},
+  {id:155,name:'cyndaquil',types:['fire'],maxHp:39,atk:52,def:43,spatk:60,spdef:50,spd:65,moves:['tackle','ember','smokescreen','swift'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/155.png',stats:[{stat:{name:'hp'},base_stat:39},{stat:{name:'attack'},base_stat:52},{stat:{name:'defense'},base_stat:43},{stat:{name:'special-attack'},base_stat:60},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:65}]},
+  {id:158,name:'totodile',types:['water'],maxHp:50,atk:65,def:64,spatk:44,spdef:48,spd:43,moves:['scratch','water-gun','bite','leer'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/158.png',stats:[{stat:{name:'hp'},base_stat:50},{stat:{name:'attack'},base_stat:65},{stat:{name:'defense'},base_stat:64},{stat:{name:'special-attack'},base_stat:44},{stat:{name:'special-defense'},base_stat:48},{stat:{name:'speed'},base_stat:43}]},
+  {id:196,name:'espeon',types:['psychic'],maxHp:65,atk:65,def:60,spatk:130,spdef:95,spd:110,moves:['confusion','psybeam','psychic','morning-sun'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/196.png',stats:[{stat:{name:'hp'},base_stat:65},{stat:{name:'attack'},base_stat:65},{stat:{name:'defense'},base_stat:60},{stat:{name:'special-attack'},base_stat:130},{stat:{name:'special-defense'},base_stat:95},{stat:{name:'speed'},base_stat:110}]},
+  {id:197,name:'umbreon',types:['dark'],maxHp:95,atk:65,def:110,spatk:60,spdef:130,spd:65,moves:['bite','pursuit','faint-attack','moonlight'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/197.png',stats:[{stat:{name:'hp'},base_stat:95},{stat:{name:'attack'},base_stat:65},{stat:{name:'defense'},base_stat:110},{stat:{name:'special-attack'},base_stat:60},{stat:{name:'special-defense'},base_stat:130},{stat:{name:'speed'},base_stat:65}]},
+  {id:246,name:'larvitar',types:['rock','ground'],maxHp:50,atk:64,def:50,spatk:45,spdef:50,spd:41,moves:['bite','rock-slide','screech','thrash'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/246.png',stats:[{stat:{name:'hp'},base_stat:50},{stat:{name:'attack'},base_stat:64},{stat:{name:'defense'},base_stat:50},{stat:{name:'special-attack'},base_stat:45},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:41}]},
+  {id:252,name:'treecko',types:['grass'],maxHp:40,atk:45,def:35,spatk:65,spdef:55,spd:70,moves:['pound','absorb','quick-attack','mega-drain'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/252.png',stats:[{stat:{name:'hp'},base_stat:40},{stat:{name:'attack'},base_stat:45},{stat:{name:'defense'},base_stat:35},{stat:{name:'special-attack'},base_stat:65},{stat:{name:'special-defense'},base_stat:55},{stat:{name:'speed'},base_stat:70}]},
+  {id:255,name:'torchic',types:['fire'],maxHp:45,atk:60,def:40,spatk:70,spdef:50,spd:45,moves:['scratch','ember','peck','sand-attack'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/255.png',stats:[{stat:{name:'hp'},base_stat:45},{stat:{name:'attack'},base_stat:60},{stat:{name:'defense'},base_stat:40},{stat:{name:'special-attack'},base_stat:70},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:45}]},
+  {id:258,name:'mudkip',types:['water'],maxHp:50,atk:70,def:50,spatk:50,spdef:50,spd:40,moves:['tackle','water-gun','mud-slap','bide'],sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/258.png',stats:[{stat:{name:'hp'},base_stat:50},{stat:{name:'attack'},base_stat:70},{stat:{name:'defense'},base_stat:50},{stat:{name:'special-attack'},base_stat:50},{stat:{name:'special-defense'},base_stat:50},{stat:{name:'speed'},base_stat:40}]},
+];
+
+// ═══════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function pick(a,n){return shuffle([...a]).slice(0,n);}
+function tb(type){return `<span class="tb t-${type}">${type}</span>`;}
+function hpColor(pct){if(pct>.5)return'linear-gradient(90deg,#4ade80,#22c55e)';if(pct>.25)return'linear-gradient(90deg,#facc15,#eab308)';return'linear-gradient(90deg,#f87171,#ef4444)';}
+function trainerName(){return document.getElementById('playerNameInput').value.trim()||'ASH';}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// type → header gradient
+const TYPE_GRADIENT={
+  fire:'linear-gradient(135deg,#7c2d12,#c2410c)',
+  water:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',
+  grass:'linear-gradient(135deg,#14532d,#15803d)',
+  electric:'linear-gradient(135deg,#713f12,#ca8a04)',
+  psychic:'linear-gradient(135deg,#500724,#be185d)',
+  ice:'linear-gradient(135deg,#164e63,#0891b2)',
+  fighting:'linear-gradient(135deg,#450a0a,#b91c1c)',
+  poison:'linear-gradient(135deg,#3b0764,#7e22ce)',
+  ground:'linear-gradient(135deg,#451a03,#92400e)',
+  flying:'linear-gradient(135deg,#1e1b4b,#4338ca)',
+  ghost:'linear-gradient(135deg,#2e1065,#6d28d9)',
+  dragon:'linear-gradient(135deg,#1e1b4b,#4f46e5)',
+  dark:'linear-gradient(135deg,#1c1917,#44403c)',
+  rock:'linear-gradient(135deg,#292524,#78716c)',
+  bug:'linear-gradient(135deg,#1a2e05,#4d7c0f)',
+  steel:'linear-gradient(135deg,#1e293b,#475569)',
+  fairy:'linear-gradient(135deg,#500724,#db2777)',
+  normal:'linear-gradient(135deg,#27272a,#52525b)',
+};
+function cardGradient(types){return TYPE_GRADIENT[types[0]]||TYPE_GRADIENT.normal;}
+
+// ═══════════════════════════════════
+//  FETCH
+// ═══════════════════════════════════
+async function fetchPokemon(id){
+  try{
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),6000);
+    const res=await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`,{signal:ctrl.signal});
+    clearTimeout(t);
+    if(!res.ok)throw new Error();
+    const d=await res.json();
+    const sm={};d.stats.forEach(s=>{sm[s.stat.name]=s.base_stat;});
+    const moves=pick(d.moves.filter(m=>m.move.name).map(m=>m.move.name),4);
+    return{id,name:d.name,maxHp:sm.hp,hp:sm.hp,atk:sm.attack,def:sm.defense,spatk:sm['special-attack'],
+      spdef:sm['special-defense'],spd:sm.speed,types:d.types.map(t=>t.type.name),moves,
+      sprite:d.sprites.front_default,stats:d.stats};
+  }catch{
+    const fb=FB.find(p=>p.id===id)||FB[Math.floor(Math.random()*FB.length)];
+    return{...fb,hp:fb.maxHp};
+  }
+}
+
+function getFilteredPool(){
+  const typeF=document.getElementById('typeFilter').value;
+  const genF=document.getElementById('genFilter').value;
+  let pool=[...FB];
+
+  if(typeF){
+    // filter fallback by type
+    pool=pool.filter(p=>p.types.includes(typeF));
+    if(pool.length<10) pool=[...FB]; // fallback if too few
+  }
+  if(genF){
+    const [lo,hi]=GEN_RANGES[genF];
+    const genPool=pool.filter(p=>p.id>=lo&&p.id<=hi);
+    if(genPool.length>=10) pool=genPool;
+  }
+  return pool;
+}
+
+async function loadTeams(){
+  showScreen('screenLoading');
+  document.getElementById('loadTxt').textContent='LOADING POKÉMON...';
+
+  let useAPI=false;
+  try{
+    const p=await fetch('https://pokeapi.co/api/v2/pokemon/1',{signal:AbortSignal.timeout(3500)});
+    useAPI=p.ok;
+  }catch{}
+
+  const filteredFB=getFilteredPool();
+  let both;
+  if(useAPI){
+    // Use full gen pools if filter applied
+    const typeF=document.getElementById('typeFilter').value;
+    const genF=document.getElementById('genFilter').value;
+    let apiPool=Object.values(ALL_POOL).flat();
+    if(genF) apiPool=ALL_POOL[genF]||apiPool;
+    if(typeF){
+      // Use fallback pool filtered by type (API type filter requires extra calls)
+      both=shuffle([...filteredFB]).slice(0,10).map(p=>({...p,hp:p.maxHp}));
+    } else {
+      const ids=pick(apiPool,10);
+      both=await Promise.all(ids.map(id=>fetchPokemon(id)));
+    }
+  } else {
+    both=shuffle([...filteredFB]).slice(0,10).map(p=>({...p,hp:p.maxHp}));
+  }
+
+  playerTeam=both.slice(0,5);
+  cpuTeam=both.slice(5,10);
+  renderReview();
+  showScreen('screenReview');
+}
+
+async function applyFiltersAndReload(){await loadTeams();}
+
+// ═══════════════════════════════════
+//  TCG CARD RENDERING
+// ═══════════════════════════════════
+function tcgCard(p, idx, showReroll=true){
+  const maxStat=255;
+  const gradient=cardGradient(p.types);
+  const statsHtml=p.stats.map(s=>{
+    const labels={hp:'HP',attack:'ATK',defense:'DEF','special-attack':'SPA','special-defense':'SPD',speed:'SPE'};
+    const cls={hp:'s-hp',attack:'s-atk',defense:'s-def','special-attack':'s-spatk','special-defense':'s-spdef',speed:'s-spd'};
+    return`<div class="mini-stat-row">
+      <span class="mini-stat-lbl">${labels[s.stat.name]||s.stat.name}</span>
+      <div class="mini-bar-bg"><div class="mini-bar-fill ${cls[s.stat.name]||'s-hp'}" style="width:${Math.min(100,(s.base_stat/maxStat)*100)}%"></div></div>
+      <span class="mini-stat-val">${s.base_stat}</span>
+    </div>`;
+  }).join('');
+  const movesHtml=p.moves.slice(0,2).map(m=>`<span class="card-move">${m.replace(/-/g,' ')}</span>`).join('');
+
+  return`<div class="tcg-card card-deal" style="animation-delay:${idx*0.07}s">
+    ${showReroll?`<button class="card-reroll" title="Reroll this Pokémon" onclick="rerollOne(${idx}, this)">⟳</button>`:''}
+    <div class="card-header" style="background:${gradient}">
+      <div style="font-size:11px;font-weight:800;text-transform:capitalize;color:#fff;text-shadow:1px 1px 3px rgba(0,0,0,.6)">${p.name}</div>
+      <div class="card-hp"><span>${p.maxHp}</span> HP</div>
+    </div>
+    <div class="card-art" style="background:${gradient}">
+      <div class="card-art-bg" style="background-image:url(${p.sprite});"></div>
+      <img class="card-sprite" src="${p.sprite}" alt="${p.name}">
+    </div>
+    <div class="card-body">
+      <div class="card-types">${p.types.map(tb).join('')}</div>
+      <div class="mini-stats">${statsHtml}</div>
+      <div class="card-moves">${movesHtml}${p.moves.length>2?`<span class="card-move" style="color:#475569">+${p.moves.length-2} more</span>`:''}</div>
+    </div>
+  </div>`;
+}
+
+function hiddenTcgCard(i){
+  return`<div class="hidden-tcg" style="animation-delay:${i*0.07}s">
+    <svg class="hidden-back" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" fill="none" stroke="#fff" stroke-width="4"/>
+      <line x1="2" y1="50" x2="98" y2="50" stroke="#fff" stroke-width="4"/>
+      <circle cx="50" cy="50" r="13" fill="transparent" stroke="#fff" stroke-width="4"/>
+    </svg>
+    <div class="hidden-qmarks">? ? ?</div>
+  </div>`;
+}
+
+function renderReview(){
+  document.getElementById('yourHandCards').innerHTML=playerTeam.map((p,i)=>tcgCard(p,i,true)).join('');
+  document.getElementById('oppHandCards').innerHTML=[0,1,2,3,4].map(i=>hiddenTcgCard(i)).join('');
+}
+
+async function rerollOne(idx, btn){
+  btn.classList.add('spinning');
+  btn.disabled=true;
+
+  // deck animation: bounce top card
+  const deck=document.getElementById('deckStack');
+  deck.style.transition='transform .15s';
+  deck.style.transform='scale(1.05)';
+  setTimeout(()=>{deck.style.transform='';},200);
+
+  const filteredFB=getFilteredPool();
+  const usedIds=playerTeam.map(p=>p.id);
+
+  let newPoke;
+  // try API first
+  let useAPI=false;
+  try{const r=await fetch('https://pokeapi.co/api/v2/pokemon/1',{signal:AbortSignal.timeout(2000)});useAPI=r.ok;}catch{}
+
+  if(useAPI){
+    const pool=Object.values(ALL_POOL).flat().filter(id=>!usedIds.includes(id));
+    const id=pick(pool,1)[0];
+    newPoke=await fetchPokemon(id);
+  } else {
+    const pool=filteredFB.filter(p=>!usedIds.includes(p.id));
+    if(pool.length===0){newPoke={...pick(filteredFB,1)[0]};} else {newPoke={...pick(pool,1)[0]};}
+    newPoke.hp=newPoke.maxHp;
+  }
+
+  playerTeam[idx]=newPoke;
+
+  // re-render just that card with flip animation
+  const cards=document.getElementById('yourHandCards').children;
+  if(cards[idx]){
+    cards[idx].outerHTML=tcgCard(newPoke,idx,true).replace('card-deal','card-flip');
+    // re-attach (outerHTML replaces the element)
+    const newCards=document.getElementById('yourHandCards').children;
+    if(newCards[idx]) newCards[idx].classList.add('card-flip');
+  } else {
+    renderReview();
+  }
+}
+
+async function rerollAll(){await loadTeams();}
+
+// ═══════════════════════════════════
+//  ARRANGE
+// ═══════════════════════════════════
+function goToArrange(){renderArrange();showScreen('screenArrange');}
+
+function renderArrange(){
+  document.getElementById('arrangeList').innerHTML=playerTeam.map((p,i)=>`
+    <div class="arr-card" draggable="true" data-idx="${i}"
+      ondragstart="onDS(event,${i})" ondragover="onDO(event)" ondrop="onDrop(event,${i})" ondragend="onDE(event)">
+      <span class="arr-num">${i+1}</span>
+      <img class="arr-sprite" src="${p.sprite}" alt="${p.name}">
+      <div class="arr-info">
+        <div class="arr-name">${p.name}</div>
+        <div>${p.types.map(tb).join('')}</div>
+      </div>
+    </div>`).join('');
+}
+
+function onDS(e,i){dragSrc=i;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function onDO(e){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('.arr-card').forEach(c=>c.classList.remove('drag-over'));e.currentTarget.classList.add('drag-over');}
+function onDrop(e,i){e.preventDefault();if(dragSrc===null||dragSrc===i)return;[playerTeam[dragSrc],playerTeam[i]]=[playerTeam[i],playerTeam[dragSrc]];renderArrange();}
+function onDE(){document.querySelectorAll('.arr-card').forEach(c=>c.classList.remove('dragging','drag-over'));dragSrc=null;}
+
+// ═══════════════════════════════════
+//  BATTLE  (panel layout)
+// ═══════════════════════════════════
+let roundNum = 0;
+
+function startBattle(){
+  playerTeam.forEach(p=>{p.hp=p.maxHp;});
+  cpuTeam.forEach(p=>{p.hp=p.maxHp;});
+  playerIdx=0; cpuIdx=0; isBattling=true; roundNum=0;
+  document.getElementById('battleYouLabel').textContent=trainerName();
+  document.getElementById('battleLog').innerHTML='';
+  showScreen('screenBattle');
+  renderStrips();
+  renderPlayerPanel();
+  renderEnemyPanel();
+  logMsg(`<span class="ls">⚔ Battle Start! Round 1</span>`);
+}
+
+/* ── strips (team row at top) ── */
+function renderStrips(){
+  document.getElementById('yourStrip').innerHTML = playerTeam.map((p,i)=>{
+    const pct=Math.max(0,p.hp/p.maxHp)*100;
+    const cls = p.hp<=0 ? 'fainted' : i===playerIdx ? 'active' : '';
+    return `<div class="strip-slot ${cls}">
+      <img class="strip-sprite" src="${p.sprite}" alt="${p.name}">
+      <div class="strip-name">${p.name}</div>
+      <div class="strip-hp-bar"><div class="strip-hp-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('cpuStrip').innerHTML = cpuTeam.map((p,i)=>{
+    const pct=Math.max(0,p.hp/p.maxHp)*100;
+    const cls = p.hp<=0 ? 'fainted' : i===cpuIdx ? 'active-cpu' : '';
+    return `<div class="strip-slot ${cls}">
+      <img class="strip-sprite" src="${p.sprite}" alt="${p.name}">
+      <div class="strip-name">${p.name}</div>
+      <div class="strip-hp-bar"><div class="strip-hp-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ── player panel ── */
+function renderPlayerPanel(){
+  const p = playerTeam[playerIdx];
+  document.getElementById('playerName').textContent = p.name;
+  document.getElementById('playerNum').textContent  = `#${String(p.id).padStart(3,'0')}`;
+  document.getElementById('playerSprite').src        = p.sprite;
+  document.getElementById('playerTypes').innerHTML   = p.types.map(tb).join('');
+  updatePanelHp('player', p);
+  // move buttons — clickable
+  document.getElementById('playerMoves').innerHTML = p.moves.map((m,i)=>`
+    <button class="pmove" onclick="playerAttack(${i})">
+      ${m.replace(/-/g,' ')}
+      <span class="mtype-tag">${p.types[0]} · ${movePower(m)}pw</span>
+    </button>`).join('');
+}
+
+/* ── enemy panel ── */
+function renderEnemyPanel(){
+  const e = cpuTeam[cpuIdx];
+  document.getElementById('enemyName').textContent = e.name;
+  document.getElementById('enemyNum').textContent  = `#${String(e.id).padStart(3,'0')}`;
+  document.getElementById('enemySprite').src        = e.sprite;
+  document.getElementById('enemyTypes').innerHTML   = e.types.map(tb).join('');
+  updatePanelHp('enemy', e);
+  // CPU moves shown as info only
+  document.getElementById('enemyMoves').innerHTML = e.moves.map(m=>`
+    <div class="pmove cpu-move">
+      ${m.replace(/-/g,' ')}
+      <span class="mtype-tag">${e.types[0]} · ${movePower(m)}pw</span>
+    </div>`).join('');
+}
+
+function movePower(moveName){
+  // deterministic pseudo-power from move name hash so it's consistent
+  let h=0; for(const c of moveName) h=(h*31+c.charCodeAt(0))&0xffff;
+  return (20 + (h % 9) * 10); // 20,30,40,...100pw
+}
+
+function updatePanelHp(side, p){
+  const pct = Math.max(0, p.hp / p.maxHp);
+  const bar = document.getElementById(`${side}HpBar`);
+  const pctEl= document.getElementById(`${side}HpPct`);
+  bar.style.width = (pct*100)+'%';
+  // colour: green→yellow→red
+  if(pct > .5) bar.style.background='linear-gradient(90deg,#4ade80,#22c55e)';
+  else if(pct > .25) bar.style.background='linear-gradient(90deg,#facc15,#eab308)';
+  else bar.style.background='linear-gradient(90deg,#f87171,#ef4444)';
+  pctEl.textContent = Math.round(pct*100)+'%';
+}
+
+function calcDamage(a,d){
+  const pw=40+Math.floor(Math.random()*30);
+  let dmg=Math.floor((a.atk/d.def)*pw*.5);
+  dmg=Math.max(1,Math.round(dmg*(0.85+Math.random()*.3)));
+  return dmg;
+}
+
+function disableMoves(){ document.querySelectorAll('.pmove:not(.cpu-move)').forEach(b=>b.disabled=true); }
+function enableMoves(){  if(isBattling) document.querySelectorAll('.pmove:not(.cpu-move)').forEach(b=>b.disabled=false); }
+
+function logMsg(html){
+  const log=document.getElementById('battleLog');
+  log.innerHTML+=`<div class="log-line">${html}</div>`;
+  log.scrollTop=log.scrollHeight;
+}
+function logRound(n){ logMsg(`<div class="log-round">-- Round ${n} --</div>`); }
+
+async function playerAttack(mi){
+  if(!isBattling) return;
+  disableMoves();
+
+  const p=playerTeam[playerIdx], e=cpuTeam[cpuIdx];
+  const move=p.moves[mi];
+  const dmg=calcDamage(p,e);
+
+  roundNum++;
+  logRound(roundNum);
+
+  // animate player
+  const ps=document.getElementById('playerSprite');
+  const es=document.getElementById('enemySprite');
+  ps.classList.add('attacking'); await sleep(120);
+  es.classList.add('hit');
+  logMsg(`<span class="lp">${p.name}</span> used <span class="ls">${move.replace(/-/g,' ')}!</span> ${dmg} dmg to <span class="le">${e.name}</span>.`);
+  e.hp -= dmg; updatePanelHp('enemy',e); renderStrips();
+  await sleep(520); ps.classList.remove('attacking'); es.classList.remove('hit');
+
+  if(e.hp<=0){
+    e.hp=0; updatePanelHp('enemy',e);
+    es.classList.add('fainting');
+    logMsg(`<span class="le">${e.name} fainted!</span>`);
+    await sleep(900); es.classList.remove('fainting');
+    cpuIdx++;
+    if(cpuIdx>=cpuTeam.length){ endBattle('win'); return; }
+    logMsg(`CPU sends out <span class="le">${cpuTeam[cpuIdx].name}!</span>`);
+    renderStrips(); renderEnemyPanel(); enableMoves(); return;
+  }
+
+  // CPU turn (same round)
+  await sleep(350);
+  await cpuAttack();
+}
+
+async function cpuAttack(){
+  const p=playerTeam[playerIdx], e=cpuTeam[cpuIdx];
+  const move=e.moves[Math.floor(Math.random()*e.moves.length)];
+  const dmg=calcDamage(e,p);
+
+  const es=document.getElementById('enemySprite');
+  const ps=document.getElementById('playerSprite');
+  es.classList.add('attacking'); await sleep(120);
+  ps.classList.add('hit');
+  logMsg(`<span class="ls">${e.name}</span> used <span class="le">${move.replace(/-/g,' ')}!</span> ${dmg} dmg.`);
+  p.hp -= dmg; updatePanelHp('player',p); renderStrips();
+  await sleep(520); es.classList.remove('attacking'); ps.classList.remove('hit');
+
+  if(p.hp<=0){
+    p.hp=0; updatePanelHp('player',p);
+    ps.classList.add('fainting');
+    logMsg(`<span class="lp">${p.name} fainted!</span>`);
+    await sleep(900); ps.classList.remove('fainting');
+    playerIdx++;
+    if(playerIdx>=playerTeam.length){ endBattle('lose'); return; }
+    logMsg(`Go, <span class="lp">${playerTeam[playerIdx].name}!</span>`);
+    renderStrips(); renderPlayerPanel(); enableMoves(); return;
+  }
+  enableMoves();
+}
+
+function endBattle(result){
+  isBattling=false;
+  if(result==='win'){
+    scores.you++;
+    document.getElementById('resultTitle').textContent='YOU WIN!';
+    document.getElementById('resultTitle').className='result-title win';
+    document.getElementById('resultSub').textContent=`All of the CPU's Pokémon fainted. Well played, ${trainerName()}!`;
+  } else {
+    scores.cpu++;
+    document.getElementById('resultTitle').textContent='YOU LOSE!';
+    document.getElementById('resultTitle').className='result-title lose';
+    document.getElementById('resultSub').textContent=`All your Pokémon fainted. Better luck next time, ${trainerName()}!`;
+  }
+  document.getElementById('scoreYou').textContent=scores.you;
+  document.getElementById('scoreCpu').textContent=scores.cpu;
+  document.getElementById('youLabel').textContent=trainerName();
+  document.getElementById('resultOverlay').style.display='flex';
+}
+
+function forfeit(){ if(!confirm('Forfeit this battle?')) return; endBattle('lose'); }
+function resetGame(){ document.getElementById('resultOverlay').style.display='none'; loadTeams(); }
+
+// ═══════════════════════════════════
+//  SHARE SCORE CARD
+// ═══════════════════════════════════
+function openShare(){
+  const overlay=document.getElementById('shareOverlay');
+  overlay.style.display='flex';
+  drawShareCard();
+}
+function closeShare(){document.getElementById('shareOverlay').style.display='none';}
+
+function drawShareCard(){
+  const canvas=document.getElementById('shareCanvas');
+  const ctx=canvas.getContext('2d');
+  const W=480,H=220;
+  canvas.width=W;canvas.height=H;
+
+  // background
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0d1117');bg.addColorStop(1,'#1a2540');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // border
+  ctx.strokeStyle='#2a3349';ctx.lineWidth=2;
+  ctx.strokeRect(1,1,W-2,H-2);
+
+  // title
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 13px "Press Start 2P", monospace';
+  ctx.textAlign='center';
+  ctx.fillText('POKÉMON BATTLE',W/2,34);
+
+  // subtitle
+  ctx.fillStyle='#64748b';
+  ctx.font='10px Inter, sans-serif';
+  ctx.fillText('5v5 Team Battle',W/2,52);
+
+  // trainer name
+  const name=trainerName();
+  ctx.fillStyle='#60a5fa';
+  ctx.font='bold 14px Inter, sans-serif';
+  ctx.fillText(name,W/2,78);
+
+  // score box
+  const boxW=200,boxH=60,boxX=(W-boxW)/2,boxY=92;
+  ctx.fillStyle='#161b27';
+  ctx.beginPath();ctx.roundRect(boxX,boxY,boxW,boxH,10);ctx.fill();
+  ctx.strokeStyle='#2a3349';ctx.lineWidth=1;ctx.stroke();
+
+  ctx.font='bold 11px "Press Start 2P", monospace';
+  ctx.fillStyle='#60a5fa';ctx.textAlign='left';
+  ctx.fillText('YOU',boxX+24,boxY+22);
+  ctx.fillStyle='#f87171';ctx.textAlign='right';
+  ctx.fillText('CPU',boxX+boxW-24,boxY+22);
+
+  ctx.font='bold 22px "Press Start 2P", monospace';
+  ctx.fillStyle='#ffffff';ctx.textAlign='left';
+  ctx.fillText(scores.you,boxX+24,boxY+50);
+  ctx.textAlign='right';
+  ctx.fillText(scores.cpu,boxX+boxW-24,boxY+50);
+
+  ctx.fillStyle='#374151';ctx.textAlign='center';
+  ctx.fillText('|',W/2,boxY+50);
+
+  // pokeball sprites (small)
+  const spritePromises=playerTeam.slice(0,5).map((p,i)=>new Promise(res=>{
+    const img=new Image();img.crossOrigin='anonymous';
+    img.onload=()=>{
+      const x=40+i*80,y=166,sz=44;
+      ctx.drawImage(img,x,y,sz,sz);
+      res();
+    };
+    img.onerror=res;
+    img.src=p.sprite;
+  }));
+
+  Promise.all(spritePromises).then(()=>{
+    // team label
+    ctx.fillStyle='#4b5563';ctx.font='10px Inter, sans-serif';ctx.textAlign='center';
+    ctx.fillText('YOUR TEAM',W/2,162);
+
+    // watermark
+    ctx.fillStyle='#374151';ctx.font='9px Inter, sans-serif';ctx.textAlign='right';
+    ctx.fillText('pokémon-battle.vercel.app',W-12,H-10);
+  });
+}
+
+function getShareText(){
+  const name=trainerName();
+  return `I'm ${scores.you}-${scores.cpu} in Pokémon Battle! Can you beat my score? ⚔️🎴 #PokemonBattle #VibeCode`;
+}
+
+function shareToX(){
+  const text=encodeURIComponent(getShareText());
+  window.open(`https://twitter.com/intent/tweet?text=${text}`,'_blank');
+}
+
+function shareToIG(){
+  downloadCard();
+  alert('Image downloaded! Open Instagram and share it as a post or story.');
+}
+
+function downloadCard(){
+  const canvas=document.getElementById('shareCanvas');
+  const link=document.createElement('a');
+  link.download=`pokemon-battle-score-${trainerName()}.png`;
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+// update YOU label when name changes
+document.getElementById('playerNameInput').addEventListener('input',function(){
+  document.getElementById('youLabel').textContent=this.value.trim()||'YOU';
+});
+
+// ═══════════════════════════════════
+//  INIT
+// ═══════════════════════════════════
+loadTeams();
+</script>
+</body>
+</html>
