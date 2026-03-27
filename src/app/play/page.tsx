@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/game-store';
 import { useUiStore } from '@/store/ui-store';
@@ -13,6 +13,7 @@ import {
   generateMirroredPool,
   generateIndependentDraw,
   rerollIndependentSlot,
+  filterPokemonPool,
 } from '@/engine/mirrored-draw';
 import { TEAM_SIZE } from '@/engine/constants';
 
@@ -139,6 +140,16 @@ export default function BuildTeamPage() {
       ? useGameStore.getState().player1Name
       : useGameStore.getState().player2Name;
 
+  // Calculate available pool size for current filters
+  const poolInfo = useMemo(() => {
+    const pool = filterPokemonPool(FALLBACK_POKEMON, filters);
+    return {
+      count: pool.length,
+      isLimited: pool.length < TEAM_SIZE,
+      hasFilter: filters.type !== null || filters.generation !== null,
+    };
+  }, [filters]);
+
   return (
     <div className="space-y-6">
       <PrivacyScreen />
@@ -263,6 +274,31 @@ export default function BuildTeamPage() {
         </div>
       )}
 
+      {/* Pool size info / limited pool warning */}
+      {poolInfo.hasFilter && (
+        <div className={`text-center text-xs px-4 py-2 rounded-lg mx-auto max-w-md ${
+          poolInfo.isLimited
+            ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+            : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]'
+        }`}>
+          {poolInfo.isLimited ? (
+            <>
+              <span className="font-semibold">Limited pool:</span> Only {poolInfo.count} Pokemon match
+              {filters.type ? ` ${filters.type} type` : ''}
+              {filters.type && filters.generation ? ' in' : ''}
+              {filters.generation ? ` Gen ${filters.generation}` : ''}.
+              Some Pokemon may repeat.
+            </>
+          ) : (
+            <>
+              {poolInfo.count} Pokemon available
+              {filters.type ? ` (${filters.type} type)` : ''}
+              {filters.generation ? ` in Gen ${filters.generation}` : ''}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Card hand */}
       <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
         {currentSpecies.map((species, index) => (
@@ -284,10 +320,11 @@ export default function BuildTeamPage() {
         <button
           onClick={handleConfirmTeam}
           disabled={currentSpecies.length < TEAM_SIZE}
-          className="min-h-11 px-6 py-2.5 bg-[var(--color-player1)] hover:bg-blue-500
-                     text-white font-bold text-sm rounded-xl transition-colors
+          className="min-h-11 px-6 py-2.5 text-white font-bold text-sm rounded-xl transition-all
                      disabled:opacity-50 disabled:cursor-not-allowed
-                     focus-visible:ring-2 focus-visible:ring-white"
+                     focus-visible:ring-2 focus-visible:ring-white
+                     shadow-lg hover:shadow-xl hover:scale-[1.02]"
+          style={{ background: 'linear-gradient(135deg, #818cf8, #a78bfa)' }}
         >
           {mode === 'two_player' && activeSetupPlayer === 'player1'
             ? 'CONFIRM & PASS TO P2'

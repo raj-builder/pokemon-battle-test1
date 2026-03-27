@@ -2,6 +2,8 @@
 
 import type { PokemonSpecies } from '@/engine/types';
 import { TYPE_COLORS } from '@/data/type-colors';
+import { TYPE_ICONS } from '@/data/type-icons';
+import { MOVE_CATALOG } from '@/data/move-catalog';
 
 interface TcgCardProps {
   pokemon: PokemonSpecies;
@@ -66,7 +68,7 @@ export default function TcgCard({
       </div>
 
       {/* Sprite */}
-      <div className="flex justify-center py-3 bg-[#12161f]">
+      <div className="flex justify-center py-3 bg-[var(--color-bg-primary)]/60">
         {isOpponent ? (
           <div
             className="w-[80px] h-[80px] rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center text-2xl"
@@ -137,15 +139,32 @@ export default function TcgCard({
 
       {/* Moves */}
       {!isOpponent && (
-        <div className="px-2.5 pb-2 space-y-0.5">
-          {pokemon.moveIds.slice(0, 4).map((move) => (
-            <div
-              key={move}
-              className="text-[9px] text-[var(--color-text-secondary)] capitalize truncate"
-            >
-              {move.replace(/-/g, ' ')}
-            </div>
-          ))}
+        <div className="px-2 pb-2.5 space-y-1">
+          {pokemon.moveIds.slice(0, 4).map((moveId) => {
+            const move = MOVE_CATALOG[moveId];
+            const moveType = move?.type ?? 'normal';
+            const movePower = move?.power ?? 0;
+            const icon = TYPE_ICONS[moveType];
+            return (
+              <div
+                key={moveId}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md
+                           bg-[var(--color-bg-primary)]/40"
+              >
+                <span className="text-[9px] flex-shrink-0" aria-hidden="true">
+                  {icon}
+                </span>
+                <span className="text-[9px] text-[var(--color-text-secondary)] capitalize truncate flex-1">
+                  {moveId.replace(/-/g, ' ')}
+                </span>
+                {movePower > 0 && (
+                  <span className="text-[8px] text-[var(--color-text-dim)] font-bold flex-shrink-0">
+                    {movePower}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

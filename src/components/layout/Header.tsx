@@ -25,9 +25,12 @@ export default function Header() {
     <header className="text-center py-6 px-5" role="banner">
       {/* Title */}
       <h1
-        className="font-[var(--font-display)] text-xl sm:text-2xl text-white tracking-[4px] mb-1"
+        className="font-[var(--font-display)] text-xl sm:text-2xl tracking-[4px] mb-1"
         style={{
-          textShadow: '3px 3px 0 #1a237e, 0 0 30px rgba(100,120,255,.5)',
+          background: 'linear-gradient(135deg, #818cf8, #c084fc, #fb7185)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          filter: 'drop-shadow(2px 2px 0 rgba(99,102,241,.4))',
         }}
       >
         POKEMON BATTLE
