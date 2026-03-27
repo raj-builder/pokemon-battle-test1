@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+:root {
+  /* Background and text — dark theme matching original */
+  --color-bg-primary: #0d1117;
+  --color-bg-secondary: #161b27;
+  --color-bg-tertiary: #111621;
+  --color-bg-card: #1a1f2e;
+  --color-border: #2a3349;
+  --color-border-focus: #60a5fa;
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-text-dim: #4b5563;
+
+  /* Player colors */
+  --color-player1: #60a5fa;
+  --color-player2: #f87171;
+
+  /* HP bar colors */
+  --color-hp-high: #22c55e;
+  --color-hp-mid: #eab308;
+  --color-hp-low: #ef4444;
+
+  /* Type colors */
+  --color-type-normal: #A8A878;
+  --color-type-fire: #F08030;
+  --color-type-water: #6890F0;
+  --color-type-electric: #F8D030;
+  --color-type-grass: #78C850;
+  --color-type-ice: #98D8D8;
+  --color-type-fighting: #C03028;
+  --color-type-poison: #A040A0;
+  --color-type-ground: #E0C068;
+  --color-type-flying: #A890F0;
+  --color-type-psychic: #F85888;
+  --color-type-bug: #A8B820;
+  --color-type-rock: #B8A038;
+  --color-type-ghost: #705898;
+  --color-type-dragon: #7038F8;
+  --color-type-dark: #705848;
+  --color-type-steel: #B8B8D0;
+  --color-type-fairy: #EE99AC;
+}
+
+@theme inline {
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-bg-tertiary: var(--color-bg-tertiary);
+  --color-bg-card: var(--color-bg-card);
+  --color-border: var(--color-border);
+  --color-border-focus: var(--color-border-focus);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-dim: var(--color-text-dim);
+  --color-player1: var(--color-player1);
+  --color-player2: var(--color-player2);
+  --color-hp-high: var(--color-hp-high);
+  --color-hp-mid: var(--color-hp-mid);
+  --color-hp-low: var(--color-hp-low);
+
+  --font-display: 'Press Start 2P', monospace;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* Base reset */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Comfortable tap targets for all interactive elements */
+button, select, input {
+  touch-action: manipulation;
+}
+
+/* Focus visible for accessibility — CLAUDE.md Section 3.3 */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Battle Animations ── */
+@keyframes sprite-attack {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(20px); }
+  60%  { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes sprite-hit {
+  0%   { filter: brightness(2); transform: scale(1.05); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+@keyframes sprite-faint {
+  0%   { opacity: 1; filter: none; transform: translateY(0); }
+  100% { opacity: 0; filter: grayscale(1); transform: translateY(20px); }
+}
+
+@keyframes pokeball-spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-attack {
+  animation: sprite-attack 0.12s ease-out;
+}
+
+.animate-hit {
+  animation: sprite-hit 0.2s ease-out;
+}
+
+.animate-faint {
+  animation: sprite-faint 0.5s ease-out forwards;
+}
+
+.animate-spin {
+  animation: pokeball-spin 1s linear infinite;
+}
+
+/* HP bar transition */
+.hp-bar-fill {
+  transition: width 0.4s ease-out;
+}
+
+/* ── Type badge base styles ── */
+.type-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-inline-end: 4px;
+}
+
+/* ── Scrollbar styling (dark theme) ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
