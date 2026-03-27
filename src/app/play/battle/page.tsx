@@ -135,10 +135,17 @@ export default function BattlePage() {
     router.push('/play');
   }, [resetGame, router]);
 
+  // Redirect to team builder if no battle state (direct URL access or refresh)
+  useEffect(() => {
+    if (!battleState) {
+      router.replace('/play');
+    }
+  }, [battleState, router]);
+
   if (!battleState) {
     return (
       <div className="text-center py-20 text-[var(--color-text-muted)]">
-        No active battle. Go back to build your team.
+        Loading battle...
       </div>
     );
   }

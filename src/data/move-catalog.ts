@@ -284,11 +284,17 @@ export const MOVE_CATALOG: Record<string, Move> = {
 export function getMoveById(id: string): Move {
   const move = MOVE_CATALOG[id];
   if (!move) {
-    throw new Error(
-      `Move not found: "${id}". ` +
-      `Check that the move ID exists in MOVE_CATALOG (src/data/move-catalog.ts). ` +
-      `Available moves: ${Object.keys(MOVE_CATALOG).length} entries.`
-    );
+    // Fallback for moves not in the catalog (e.g. fetched from PokeAPI)
+    // Creates a generic normal-type physical move with moderate power
+    return Object.freeze({
+      id,
+      nameKey: `moves.${id.replace(/-([a-z])/g, (_, l: string) => l.toUpperCase())}`,
+      type: 'normal' as const,
+      category: 'physical' as const,
+      power: 50,
+      accuracy: 100,
+      pp: 20,
+    });
   }
   return move;
 }
@@ -306,17 +312,16 @@ export function getMoveById(id: string): Move {
 export function getMovesForPokemon(
   moveIds: readonly string[],
 ): [Move, Move, Move, Move] {
-  if (moveIds.length !== 4) {
-    throw new Error(
-      `Expected exactly 4 move IDs, received ${moveIds.length}. ` +
-      `Move IDs: [${moveIds.join(', ')}]`
-    );
+  // Pad with 'tackle' if fewer than 4 moves provided
+  const padded = [...moveIds];
+  while (padded.length < 4) {
+    padded.push('tackle');
   }
 
   return [
-    getMoveById(moveIds[0]),
-    getMoveById(moveIds[1]),
-    getMoveById(moveIds[2]),
-    getMoveById(moveIds[3]),
+    getMoveById(padded[0]),
+    getMoveById(padded[1]),
+    getMoveById(padded[2]),
+    getMoveById(padded[3]),
   ];
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/game-store';
 import { useUiStore } from '@/store/ui-store';
@@ -67,6 +67,26 @@ export default function BuildTeamPage() {
       setPlayerSpecies('player2', p2Draw);
     }
   }, [masterSeed, filters, mode, player1Species.length, setPlayerSpecies]);
+
+  // Auto-regenerate hand when filters change (after initial draw)
+  const prevFiltersRef = useRef(filters);
+  useEffect(() => {
+    if (masterSeed === 0) return;
+    // Skip if this is the initial render (no previous filters)
+    if (prevFiltersRef.current === filters) return;
+    prevFiltersRef.current = filters;
+
+    // Regenerate the current player's hand with new filters
+    const rng = new SeededRandom(Date.now());
+    const newDraw = generateIndependentDraw(FALLBACK_POKEMON, filters, rng);
+    setPlayerSpecies(activeSetupPlayer, newDraw);
+
+    if (mode !== 'two_player') {
+      const p2Rng = new SeededRandom(Date.now() + 1);
+      const p2Draw = generateIndependentDraw(FALLBACK_POKEMON, filters, p2Rng);
+      setPlayerSpecies('player2', p2Draw);
+    }
+  }, [filters, masterSeed, activeSetupPlayer, mode, setPlayerSpecies]);
 
   // Reroll a single card
   const handleReroll = useCallback(

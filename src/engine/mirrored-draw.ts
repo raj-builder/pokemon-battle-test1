@@ -94,13 +94,24 @@ export function generateIndependentDraw(
 ): PokemonSpecies[] {
   const filteredPool = filterPokemonPool(allPokemon, filters);
 
-  if (filteredPool.length < teamSize) {
+  if (filteredPool.length === 0) {
     throw new Error(
-      `Filtered pool has only ${filteredPool.length} Pokemon, but ${teamSize} are required. Try broader filters.`
+      'No Pokemon match the selected filters. Try broader filters.'
     );
   }
 
-  return rng.pickN(filteredPool, teamSize);
+  // Enough unique Pokemon — pick without duplicates
+  if (filteredPool.length >= teamSize) {
+    return rng.pickN(filteredPool, teamSize);
+  }
+
+  // Pool smaller than team size — use all unique first, then pad randomly
+  // This avoids unnecessary duplicates when pool is small
+  const team: PokemonSpecies[] = rng.shuffle([...filteredPool]);
+  while (team.length < teamSize) {
+    team.push(rng.pick(filteredPool));
+  }
+  return team;
 }
 
 /**
