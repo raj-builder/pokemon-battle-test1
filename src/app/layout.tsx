@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Press_Start_2P, Inter } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const pressStart2P = Press_Start_2P({
@@ -54,6 +55,7 @@ export default function RootLayout({
             </a>
           </p>
         </footer>
+        <Analytics />
       </body>
     </html>
   );
