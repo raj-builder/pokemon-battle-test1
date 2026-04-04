@@ -1,5 +1,34 @@
 # Changelog
 
+## [2026-04-04] — Fix 2-player flow bugs, add post-battle summary, improve card readability
+
+### What changed
+- Removed score persistence from localStorage — scores now start at 0-0 on each page load instead of carrying forward from previous sessions
+- Fixed 2-player arrange order: Player 1 now gets to arrange their team before Player 2 (was previously skipped)
+- Fixed 2-player mode defaulting to CPU during battle — the `two_player` mode is now correctly preserved through the arrange page
+- Hidden the "You Control / AI Simulation" battle mode selector when in 2-player mode (both humans always control their own Pokemon)
+- Added post-battle summary screen with MVP highlight, per-Pokemon damage stats, key moments (super effective hits, crits), and improvement tips
+- Increased card sizes with responsive breakpoints: cards scale from 170px (mobile) to 250px (desktop), sprites from 80px to 120px
+- Improved card typography and spacing at larger screen sizes — stat labels, move names, and dex numbers all scale up
+
+### Why
+Five user-reported bugs affecting the 2-player experience, card readability on laptops, and post-battle flow. The 2-player mode was largely broken (P1 couldn't arrange, battle showed CPU), scores from past sessions confused new players, and the "Play Again" flow lacked any battle analysis.
+
+### Data & calculation notes
+- New `analyzeBattle()` function in `src/engine/battle-analyzer.ts` computes: MVP (argmax of totalDamageDealt per side), per-Pokemon damage dealt (SUM of damage from eventLog), knockouts (COUNT of pokemon_fainted events), improvement tips (based on lead type effectiveness)
+- All stats derive from `BattleState.eventLog` and `BattleState.player1/player2.team` — no new data sources
+
+### Upgrade notes for the next engineer or AI session
+- Users with persisted scores in localStorage under key `pokemon-battle-scores` will have that data orphaned (harmless, nothing reads it anymore)
+- New files: `src/engine/battle-analyzer.ts` (pure utility), `src/components/battle/BattleSummary.tsx` (UI component)
+- New i18n keys added under `result.*` namespace in `messages/en.json` for battle summary strings
+- No new environment variables, database migrations, or third-party dependencies
+
+### Credits & third-party use
+None.
+
+---
+
 ## [2026-03-27] — Full redesign: Next.js migration with 2-player mode, battle engine, and mobile-first UI
 
 ### What changed

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/game-store';
 import { useUiStore } from '@/store/ui-store';
@@ -11,6 +11,8 @@ import { selectAiMove } from '@/engine/ai-strategy';
 import { SeededRandom } from '@/engine/seeded-random';
 import { SIM_SPEED_PRESETS } from '@/engine/constants';
 import type { BattleAction, BattleEvent, BattlePokemon } from '@/engine/types';
+import { analyzeBattle } from '@/engine/battle-analyzer';
+import BattleSummary from '@/components/battle/BattleSummary';
 
 /**
  * Step 3: Battle page.
@@ -155,6 +157,12 @@ export default function BattlePage() {
   const isFinished = battleState.phase === 'finished';
   const activePokemon =
     currentTurnPlayer === 'player1' ? p1Active : p2Active;
+
+  // Compute battle summary when finished (memoized to avoid recalculation)
+  const battleSummary = useMemo(() => {
+    if (!isFinished) return null;
+    return analyzeBattle(battleState);
+  }, [isFinished, battleState]);
 
   return (
     <div className="space-y-4">
@@ -307,29 +315,19 @@ export default function BattlePage() {
         </div>
       )}
 
-      {/* Result overlay */}
-      {isFinished && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70">
-          <div className="bg-[var(--color-bg-card)] rounded-2xl p-8 max-w-md mx-4
-                          border border-[var(--color-border)] text-center space-y-4">
-            <h2 className="font-[var(--font-display)] text-lg text-white">
-              {battleState.winner === 'player1' ? player1Name : player2Name} WINS!
-            </h2>
-            <p className="text-sm text-[var(--color-text-muted)]">
-              All of{' '}
-              {battleState.winner === 'player1' ? (mode === 'two_player' ? player2Name : 'CPU') : player1Name}
-              &apos;s Pokemon fainted.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
-              <button
-                onClick={handlePlayAgain}
-                className="min-h-11 px-6 py-2.5 bg-[var(--color-player1)] hover:bg-blue-500
-                           text-white font-bold text-sm rounded-xl transition-colors"
-              >
-                PLAY AGAIN
-              </button>
-            </div>
-          </div>
+      {/* Result overlay with battle summary */}
+      {isFinished && battleSummary && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 overflow-y-auto py-6">
+          <BattleSummary
+            summary={battleSummary}
+            winnerName={battleState.winner === 'player1' ? player1Name : player2Name}
+            loserName={
+              battleState.winner === 'player1'
+                ? (mode === 'two_player' ? player2Name : 'CPU')
+                : player1Name
+            }
+            onPlayAgain={handlePlayAgain}
+          />
         </div>
       )}
     </div>

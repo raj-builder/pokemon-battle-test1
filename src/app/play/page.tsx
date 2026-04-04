@@ -129,6 +129,10 @@ export default function BuildTeamPage() {
       showPrivacy(player2Name);
     } else {
       // Both players done (or CPU mode), go to arrange
+      if (mode === 'two_player') {
+        // Reset to player1 so the arrange page starts with P1
+        setActiveSetupPlayer('player1');
+      }
       router.push('/play/arrange');
     }
   }, [mode, activeSetupPlayer, filters, setActiveSetupPlayer, setPlayerSpecies, showPrivacy, router]);
@@ -300,7 +304,7 @@ export default function BuildTeamPage() {
       )}
 
       {/* Card hand */}
-      <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
+      <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-5 lg:gap-6 justify-center">
         {currentSpecies.map((species, index) => (
           <TcgCard
             key={`${species.id}-${index}`}

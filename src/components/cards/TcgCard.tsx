@@ -42,7 +42,7 @@ export default function TcgCard({
   return (
     <div
       className={`
-        w-[170px] sm:w-[180px] flex-shrink-0 rounded-[14px] overflow-hidden
+        w-[170px] sm:w-[200px] md:w-[230px] lg:w-[250px] flex-shrink-0 rounded-[14px] overflow-hidden
         relative cursor-default transition-transform
         shadow-[0_6px_24px_rgba(0,0,0,0.6)] bg-[var(--color-bg-card)]
         border-2 border-transparent hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.7)]
@@ -50,17 +50,17 @@ export default function TcgCard({
     >
       {/* Card header — colored by type */}
       <div
-        className="px-2.5 py-2 flex justify-between items-center"
+        className="px-2.5 py-2 md:px-3 md:py-2.5 flex justify-between items-center"
         style={{ background: typeColor.bg }}
       >
         <span
-          className="font-bold text-[11px] capitalize tracking-wide"
+          className="font-bold text-[11px] sm:text-xs md:text-[13px] lg:text-sm capitalize tracking-wide"
           style={{ color: typeColor.text }}
         >
           {pokemon.slug.replace(/-/g, ' ')}
         </span>
         <span
-          className="text-[9px] font-bold opacity-80"
+          className="text-[9px] sm:text-[10px] md:text-[11px] font-bold opacity-80"
           style={{ color: typeColor.text }}
         >
           #{String(pokemon.id).padStart(3, '0')}
@@ -68,10 +68,10 @@ export default function TcgCard({
       </div>
 
       {/* Sprite */}
-      <div className="flex justify-center py-3 bg-[var(--color-bg-primary)]/60">
+      <div className="flex justify-center py-3 md:py-4 lg:py-5 bg-[var(--color-bg-primary)]/60">
         {isOpponent ? (
           <div
-            className="w-[80px] h-[80px] rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center text-2xl"
+            className="w-[80px] h-[80px] sm:w-24 sm:h-24 md:w-[110px] md:h-[110px] lg:w-[120px] lg:h-[120px] rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center text-2xl"
             aria-label="Hidden Pokemon"
           >
             ?
@@ -80,7 +80,7 @@ export default function TcgCard({
           <img
             src={pokemon.spriteUrl}
             alt={`${pokemon.slug} sprite`}
-            className="w-[80px] h-[80px] pixelated"
+            className="w-[80px] h-[80px] sm:w-24 sm:h-24 md:w-[110px] md:h-[110px] lg:w-[120px] lg:h-[120px] pixelated"
             style={{ imageRendering: 'pixelated' }}
             loading="lazy"
           />
@@ -88,7 +88,7 @@ export default function TcgCard({
       </div>
 
       {/* Type badges */}
-      <div className="flex gap-1 px-2.5 py-1.5">
+      <div className="flex gap-1 px-2.5 py-1.5 md:px-3 md:py-2">
         {pokemon.types.map((type) => (
           <span
             key={type}
@@ -106,7 +106,7 @@ export default function TcgCard({
 
       {/* Stats */}
       {!isOpponent && (
-        <div className="px-2.5 py-1.5 space-y-0.5">
+        <div className="px-2.5 py-1.5 md:px-3 md:py-2 space-y-0.5 md:space-y-1">
           {[
             { key: 'HP', value: stats.hp },
             { key: 'ATK', value: stats.attack },
@@ -116,10 +116,10 @@ export default function TcgCard({
             { key: 'SPD', value: stats.speed },
           ].map(({ key, value }) => (
             <div key={key} className="flex items-center gap-1.5">
-              <span className="text-[8px] text-[var(--color-text-dim)] w-7 font-bold">
+              <span className="text-[8px] md:text-[9px] lg:text-[10px] text-[var(--color-text-dim)] w-7 md:w-8 font-bold">
                 {key}
               </span>
-              <div className="flex-1 h-1.5 bg-[#1a1f2e] rounded overflow-hidden">
+              <div className="flex-1 h-1.5 md:h-2 bg-[#1a1f2e] rounded overflow-hidden">
                 <div
                   className="h-full rounded"
                   style={{
@@ -129,7 +129,7 @@ export default function TcgCard({
                   }}
                 />
               </div>
-              <span className="text-[8px] text-[var(--color-text-dim)] w-5 text-right">
+              <span className="text-[8px] md:text-[9px] lg:text-[10px] text-[var(--color-text-dim)] w-5 md:w-6 text-right">
                 {value}
               </span>
             </div>
@@ -139,7 +139,7 @@ export default function TcgCard({
 
       {/* Moves */}
       {!isOpponent && (
-        <div className="px-2 pb-2.5 space-y-1">
+        <div className="px-2 pb-2.5 md:px-3 md:pb-3 space-y-1 md:space-y-1.5">
           {pokemon.moveIds.slice(0, 4).map((moveId) => {
             const move = MOVE_CATALOG[moveId];
             const moveType = move?.type ?? 'normal';
@@ -148,17 +148,17 @@ export default function TcgCard({
             return (
               <div
                 key={moveId}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md
+                className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 rounded-md
                            bg-[var(--color-bg-primary)]/40"
               >
                 <span className="text-[9px] flex-shrink-0" aria-hidden="true">
                   {icon}
                 </span>
-                <span className="text-[9px] text-[var(--color-text-secondary)] capitalize truncate flex-1">
+                <span className="text-[9px] md:text-[10px] lg:text-[11px] text-[var(--color-text-secondary)] capitalize truncate flex-1">
                   {moveId.replace(/-/g, ' ')}
                 </span>
                 {movePower > 0 && (
-                  <span className="text-[8px] text-[var(--color-text-dim)] font-bold flex-shrink-0">
+                  <span className="text-[8px] md:text-[9px] text-[var(--color-text-dim)] font-bold flex-shrink-0">
                     {movePower}
                   </span>
                 )}

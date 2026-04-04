@@ -88,8 +88,8 @@ export default function ArrangePage() {
     const p1Team = player1Species.map(speciesToBattlePokemon);
     const p2Team = player2Species.map(speciesToBattlePokemon);
 
-    // Update game mode in store
-    if (battleMode === 'ai') {
+    // Update game mode in store (only switch to AI sim in vs_cpu mode)
+    if (mode === 'vs_cpu' && battleMode === 'ai') {
       useGameStore.getState().setMode('ai_simulation');
     }
 
@@ -203,61 +203,63 @@ export default function ArrangePage() {
         ))}
       </div>
 
-      {/* Battle mode selector */}
-      <div className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-xl p-4">
-        <div className="text-[11px] font-bold text-[var(--color-text-muted)] tracking-wider text-center mb-3">
-          BATTLE MODE
-        </div>
-        <div className="flex gap-2 justify-center">
-          <button
-            onClick={() => setBattleMode('user')}
-            className={`min-h-11 px-4 py-2 rounded-lg font-semibold text-xs transition-colors
-              ${
-                battleMode === 'user'
-                  ? 'bg-[var(--color-player1)] text-white'
-                  : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
-              }`}
-          >
-            🎮 You Control
-          </button>
-          <button
-            onClick={() => setBattleMode('ai')}
-            className={`min-h-11 px-4 py-2 rounded-lg font-semibold text-xs transition-colors
-              ${
-                battleMode === 'ai'
-                  ? 'bg-[var(--color-player1)] text-white'
-                  : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
-              }`}
-          >
-            🤖 AI Simulation
-          </button>
-        </div>
-
-        {/* Speed slider for AI mode */}
-        {battleMode === 'ai' && (
-          <div className="flex items-center gap-3 mt-3 justify-center">
-            <span className="text-xs text-[var(--color-text-muted)]">Speed</span>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={simSpeed}
-              onChange={(e) => setSimSpeed(Number(e.target.value))}
-              className="w-24"
-              aria-label="Simulation speed"
-            />
-            <span className="text-xs text-[var(--color-text-secondary)] w-16">
-              {SIM_SPEED_PRESETS[simSpeed]?.labelKey.split('.').pop() ?? 'Normal'}
-            </span>
+      {/* Battle mode selector (hidden in 2-player mode — both humans control) */}
+      {mode !== 'two_player' && (
+        <div className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-xl p-4">
+          <div className="text-[11px] font-bold text-[var(--color-text-muted)] tracking-wider text-center mb-3">
+            BATTLE MODE
           </div>
-        )}
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => setBattleMode('user')}
+              className={`min-h-11 px-4 py-2 rounded-lg font-semibold text-xs transition-colors
+                ${
+                  battleMode === 'user'
+                    ? 'bg-[var(--color-player1)] text-white'
+                    : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+                }`}
+            >
+              🎮 You Control
+            </button>
+            <button
+              onClick={() => setBattleMode('ai')}
+              className={`min-h-11 px-4 py-2 rounded-lg font-semibold text-xs transition-colors
+                ${
+                  battleMode === 'ai'
+                    ? 'bg-[var(--color-player1)] text-white'
+                    : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+                }`}
+            >
+              🤖 AI Simulation
+            </button>
+          </div>
 
-        <p className="text-center text-[11px] text-[var(--color-text-dim)] mt-2">
-          {battleMode === 'user'
-            ? 'Pick your moves each turn and battle.'
-            : 'Sit back and watch — AI controls both sides.'}
-        </p>
-      </div>
+          {/* Speed slider for AI mode */}
+          {battleMode === 'ai' && (
+            <div className="flex items-center gap-3 mt-3 justify-center">
+              <span className="text-xs text-[var(--color-text-muted)]">Speed</span>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={simSpeed}
+                onChange={(e) => setSimSpeed(Number(e.target.value))}
+                className="w-24"
+                aria-label="Simulation speed"
+              />
+              <span className="text-xs text-[var(--color-text-secondary)] w-16">
+                {SIM_SPEED_PRESETS[simSpeed]?.labelKey.split('.').pop() ?? 'Normal'}
+              </span>
+            </div>
+          )}
+
+          <p className="text-center text-[11px] text-[var(--color-text-dim)] mt-2">
+            {battleMode === 'user'
+              ? 'Pick your moves each turn and battle.'
+              : 'Sit back and watch — AI controls both sides.'}
+          </p>
+        </div>
+      )}
 
       {/* Action buttons */}
       <div

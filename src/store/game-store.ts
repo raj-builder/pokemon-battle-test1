@@ -12,7 +12,6 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type {
   BattleState,
   BattleAction,
@@ -36,7 +35,7 @@ import { SeededRandom, generateMasterSeed } from '@/engine/seeded-random';
 import { TEAM_SIZE, RULES_ENGINE_VERSION } from '@/engine/constants';
 
 // ──────────────────────────────────────────
-// Session scores (persisted across page reloads)
+// Session scores (in-memory only, reset on page reload)
 // ──────────────────────────────────────────
 
 interface SessionScores {
@@ -139,8 +138,7 @@ const DEFAULT_STATE: GameStoreState = {
 // ──────────────────────────────────────────
 
 export const useGameStore = create<GameStore>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       ...DEFAULT_STATE,
 
       // ── Configuration ──
@@ -245,15 +243,5 @@ export const useGameStore = create<GameStore>()(
       resetScores: () => {
         set({ scores: { player1Wins: 0, player2Wins: 0 } });
       },
-    }),
-    {
-      name: 'pokemon-battle-scores',
-      // Only persist scores across sessions
-      partialize: (state) => ({
-        scores: state.scores,
-        player1Name: state.player1Name,
-        player2Name: state.player2Name,
-      }),
-    }
-  )
+  })
 );
