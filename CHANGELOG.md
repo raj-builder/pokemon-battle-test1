@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-04-05] — Fix Play Again crash and show dash for status moves
+
+### What changed
+- Fixed Play Again and Forfeit buttons causing "This page couldn't load" error — navigation now starts before game state is cleared to prevent render-cycle crash
+- Status moves (Teleport, Reflect, etc.) now show a dash instead of blank space for their power value
+
+### Why
+Play Again consistently crashed because resetGame nullified battle state before router.push could navigate away, causing a re-render error. Status moves showing blank power confused users.
+
+### Data & calculation notes
+None.
+
+### Upgrade notes for the next engineer or AI session
+None.
+
+### Credits & third-party use
+None.
+
+---
+
 ## [2026-04-04] — Fix battle mode selector, forfeit crash, and card layout
 
 ### What changed

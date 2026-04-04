@@ -157,11 +157,9 @@ export default function TcgCard({
                 <span className="text-[9px] md:text-[10px] lg:text-[11px] text-[var(--color-text-secondary)] capitalize truncate flex-1">
                   {moveId.replace(/-/g, ' ')}
                 </span>
-                {movePower > 0 && (
-                  <span className="text-[8px] md:text-[9px] text-[var(--color-text-dim)] font-bold flex-shrink-0">
-                    {movePower}
-                  </span>
-                )}
+                <span className="text-[8px] md:text-[9px] text-[var(--color-text-dim)] font-bold flex-shrink-0">
+                  {movePower > 0 ? movePower : '—'}
+                </span>
               </div>
             );
           })}
