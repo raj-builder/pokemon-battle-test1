@@ -124,22 +124,26 @@ export default function BattlePage() {
     [battleState, mode, currentTurnPlayer, submitActions, showPrivacy, player1Name, player2Name]
   );
 
+  const isNavigatingAway = useRef(false);
+
   // Handle forfeit
   const handleForfeit = useCallback(() => {
     setShowForfeitConfirm(false);
+    isNavigatingAway.current = true;
     resetGame();
     router.push('/play');
   }, [resetGame, router, setShowForfeitConfirm]);
 
   // Handle play again
   const handlePlayAgain = useCallback(() => {
+    isNavigatingAway.current = true;
     resetGame();
     router.push('/play');
   }, [resetGame, router]);
 
   // Redirect to team builder if no battle state (direct URL access or refresh)
   useEffect(() => {
-    if (!battleState) {
+    if (!battleState && !isNavigatingAway.current) {
       router.replace('/play');
     }
   }, [battleState, router]);
@@ -161,7 +165,11 @@ export default function BattlePage() {
   // Compute battle summary when finished (memoized to avoid recalculation)
   const battleSummary = useMemo(() => {
     if (!isFinished) return null;
-    return analyzeBattle(battleState);
+    try {
+      return analyzeBattle(battleState);
+    } catch {
+      return null;
+    }
   }, [isFinished, battleState]);
 
   return (
@@ -316,18 +324,39 @@ export default function BattlePage() {
       )}
 
       {/* Result overlay with battle summary */}
-      {isFinished && battleSummary && (
+      {isFinished && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 overflow-y-auto py-6">
-          <BattleSummary
-            summary={battleSummary}
-            winnerName={battleState.winner === 'player1' ? player1Name : player2Name}
-            loserName={
-              battleState.winner === 'player1'
-                ? (mode === 'two_player' ? player2Name : 'CPU')
-                : player1Name
-            }
-            onPlayAgain={handlePlayAgain}
-          />
+          {battleSummary ? (
+            <BattleSummary
+              summary={battleSummary}
+              winnerName={battleState.winner === 'player1' ? player1Name : player2Name}
+              loserName={
+                battleState.winner === 'player1'
+                  ? (mode === 'two_player' ? player2Name : 'CPU')
+                  : player1Name
+              }
+              onPlayAgain={handlePlayAgain}
+            />
+          ) : (
+            <div className="bg-[var(--color-bg-card)] rounded-2xl p-8 max-w-md mx-4
+                            border border-[var(--color-border)] text-center space-y-4">
+              <h2 className="font-[var(--font-display)] text-lg text-white">
+                {battleState.winner === 'player1' ? player1Name : player2Name} WINS!
+              </h2>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                All of{' '}
+                {battleState.winner === 'player1' ? (mode === 'two_player' ? player2Name : 'CPU') : player1Name}
+                &apos;s Pokemon fainted.
+              </p>
+              <button
+                onClick={handlePlayAgain}
+                className="min-h-11 px-6 py-2.5 bg-[var(--color-player1)] hover:bg-blue-500
+                           text-white font-bold text-sm rounded-xl transition-colors"
+              >
+                PLAY AGAIN
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -304,7 +304,7 @@ export default function BuildTeamPage() {
       )}
 
       {/* Card hand */}
-      <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-5 lg:gap-6 justify-center">
+      <div className="flex flex-wrap lg:flex-nowrap gap-3 sm:gap-4 md:gap-5 lg:gap-4 justify-center">
         {currentSpecies.map((species, index) => (
           <TcgCard
             key={`${species.id}-${index}`}

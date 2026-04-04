@@ -42,7 +42,7 @@ export default function TcgCard({
   return (
     <div
       className={`
-        w-[170px] sm:w-[200px] md:w-[230px] lg:w-[250px] flex-shrink-0 rounded-[14px] overflow-hidden
+        w-[170px] sm:w-[200px] md:w-[230px] lg:w-auto lg:min-w-[180px] lg:max-w-[230px] lg:flex-1 flex-shrink-0 lg:flex-shrink rounded-[14px] overflow-hidden
         relative cursor-default transition-transform
         shadow-[0_6px_24px_rgba(0,0,0,0.6)] bg-[var(--color-bg-card)]
         border-2 border-transparent hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.7)]

@@ -88,8 +88,8 @@ export default function ArrangePage() {
     const p1Team = player1Species.map(speciesToBattlePokemon);
     const p2Team = player2Species.map(speciesToBattlePokemon);
 
-    // Update game mode in store (only switch to AI sim in vs_cpu mode)
-    if (mode === 'vs_cpu' && battleMode === 'ai') {
+    // Update game mode in store
+    if (battleMode === 'ai') {
       useGameStore.getState().setMode('ai_simulation');
     }
 
@@ -203,8 +203,8 @@ export default function ArrangePage() {
         ))}
       </div>
 
-      {/* Battle mode selector (hidden in 2-player mode — both humans control) */}
-      {mode !== 'two_player' && (
+      {/* Battle mode selector */}
+      {(mode === 'vs_cpu' || (mode === 'two_player' && activeSetupPlayer === 'player2')) && (
         <div className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-xl p-4">
           <div className="text-[11px] font-bold text-[var(--color-text-muted)] tracking-wider text-center mb-3">
             BATTLE MODE

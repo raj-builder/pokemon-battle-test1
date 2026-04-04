@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-04-04] — Fix battle mode selector, forfeit crash, and card layout
+
+### What changed
+- Restored battle mode selector (You Control / AI Simulation) — now visible for vs CPU mode and for Player 2 in 2-player mode
+- Fixed battle page crash by adding error handling to battle analyzer and fallback result overlay
+- Fixed forfeit button causing a page reload error — navigation now handled cleanly without race conditions
+- Fixed card layout on desktop: all 5 cards now display in a single row using flexible sizing instead of 4+1 split
+
+### Why
+Follow-up fixes from user testing after the initial 2-player flow and card sizing changes.
+
+### Data & calculation notes
+None.
+
+### Upgrade notes for the next engineer or AI session
+None.
+
+### Credits & third-party use
+None.
+
+---
+
 ## [2026-04-04] — Fix 2-player flow bugs, add post-battle summary, improve card readability
 
 ### What changed
