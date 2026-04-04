@@ -124,26 +124,22 @@ export default function BattlePage() {
     [battleState, mode, currentTurnPlayer, submitActions, showPrivacy, player1Name, player2Name]
   );
 
-  const isNavigatingAway = useRef(false);
-
   // Handle forfeit
   const handleForfeit = useCallback(() => {
     setShowForfeitConfirm(false);
-    isNavigatingAway.current = true;
     resetGame();
-    router.push('/play');
-  }, [resetGame, router, setShowForfeitConfirm]);
+    window.location.href = '/play';
+  }, [resetGame, setShowForfeitConfirm]);
 
   // Handle play again
   const handlePlayAgain = useCallback(() => {
-    isNavigatingAway.current = true;
     resetGame();
-    router.push('/play');
-  }, [resetGame, router]);
+    window.location.href = '/play';
+  }, [resetGame]);
 
   // Redirect to team builder if no battle state (direct URL access or refresh)
   useEffect(() => {
-    if (!battleState && !isNavigatingAway.current) {
+    if (!battleState) {
       router.replace('/play');
     }
   }, [battleState, router]);

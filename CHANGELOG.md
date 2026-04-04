@@ -1,5 +1,26 @@
 # Changelog
 
+## [2026-04-05] — Fix Play Again crash with hard navigation
+
+### What changed
+- Fixed Play Again and Forfeit buttons crashing with "This page couldn't load" — switched from Next.js client-side router.push to window.location.href for a full page navigation that avoids React re-render errors entirely
+- Investigated Player 1 win bias: battle engine turn order is speed-based with fair 50/50 tie-breaking, damage calculation is symmetric, AI strategy is the same for both sides — no inherent P1 advantage found
+
+### Why
+Next.js App Router's client-side navigation via router.push caused the battle page component to re-render after state was cleared, triggering a React error boundary. Hard navigation via window.location.href bypasses React reconciliation entirely.
+
+### Data & calculation notes
+None.
+
+### Upgrade notes for the next engineer or AI session
+- Play Again / Forfeit now use window.location.href (full page reload) instead of router.push (client-side navigation) — this is intentional to avoid React re-render crashes when battle state is cleared
+- If SPA-style navigation is needed in the future, the battle page must handle null battleState more robustly during the transition
+
+### Credits & third-party use
+None.
+
+---
+
 ## [2026-04-05] — Fix Play Again overlay persistence and status move display
 
 ### What changed
