@@ -1,13 +1,14 @@
 # Changelog
 
-## [2026-04-05] — Fix Play Again crash and show dash for status moves
+## [2026-04-05] — Fix Play Again overlay persistence and status move display
 
 ### What changed
-- Fixed Play Again and Forfeit buttons causing "This page couldn't load" error — navigation now starts before game state is cleared to prevent render-cycle crash
+- Fixed Play Again showing battle summary overlay on top of the new team selection page — component now renders nothing when battle state is cleared, so overlay disappears immediately before navigation
+- Reverted delayed resetGame approach that caused the overlay bleed-through
 - Status moves (Teleport, Reflect, etc.) now show a dash instead of blank space for their power value
 
 ### Why
-Play Again consistently crashed because resetGame nullified battle state before router.push could navigate away, causing a re-render error. Status moves showing blank power confused users.
+The previous fix delayed resetGame by 50ms to avoid a crash, but this caused the battle summary overlay to persist over the /play page. The correct fix is to reset state synchronously and return null from the component when state is cleared, preventing both the overlay leak and any render errors.
 
 ### Data & calculation notes
 None.

@@ -130,17 +130,15 @@ export default function BattlePage() {
   const handleForfeit = useCallback(() => {
     setShowForfeitConfirm(false);
     isNavigatingAway.current = true;
+    resetGame();
     router.push('/play');
-    // Delay resetGame so navigation starts before state clears
-    setTimeout(() => resetGame(), 50);
   }, [resetGame, router, setShowForfeitConfirm]);
 
   // Handle play again
   const handlePlayAgain = useCallback(() => {
     isNavigatingAway.current = true;
+    resetGame();
     router.push('/play');
-    // Delay resetGame so navigation starts before state clears
-    setTimeout(() => resetGame(), 50);
   }, [resetGame, router]);
 
   // Redirect to team builder if no battle state (direct URL access or refresh)
@@ -151,11 +149,7 @@ export default function BattlePage() {
   }, [battleState, router]);
 
   if (!battleState) {
-    return (
-      <div className="text-center py-20 text-[var(--color-text-muted)]">
-        Loading battle...
-      </div>
-    );
+    return null;
   }
 
   const p1Active = getActivePokemon(battleState.player1);
